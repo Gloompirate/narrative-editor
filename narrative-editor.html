@@ -1195,8 +1195,36 @@
         }
 
         function TreePanel({ data, selectedItem, setSelectedItem, expandedItems, toggleExpand, onNodeDoubleClick }) {
+            const [groupByChapter, setGroupByChapter] = React.useState(false);
+
             return (
                 <div className="tree-panel">
+                    {/* Group by Chapter Toggle */}
+                    <div style={{
+                        padding: '8px 12px',
+                        marginBottom: '12px',
+                        background: '#2d2d30',
+                        borderRadius: '4px',
+                        border: '1px solid #3e3e42'
+                    }}>
+                        <label style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            cursor: 'pointer',
+                            fontSize: '13px',
+                            color: '#d4d4d4'
+                        }}>
+                            <input
+                                type="checkbox"
+                                checked={groupByChapter}
+                                onChange={(e) => setGroupByChapter(e.target.checked)}
+                                style={{cursor: 'pointer'}}
+                            />
+                            <span>📚 Group by Chapter</span>
+                        </label>
+                    </div>
+
                     {data.map((category, catIndex) => (
                         <div key={category.id}>
                             <div 
@@ -1209,31 +1237,161 @@
                                 </span>
                                 {category.title}
                             </div>
-                            {expandedItems.has(category.id) && category.threads.map((thread, threadIndex) => (
-                                <div key={thread.id}>
-                                    <div 
-                                        className={`tree-item thread ${selectedItem?.type === 'thread' && selectedItem?.path[0] === catIndex && selectedItem?.path[1] === threadIndex ? 'selected' : ''}`}
-                                        onClick={() => setSelectedItem({ type: 'thread', path: [catIndex, threadIndex] })}
-                                        onDoubleClick={() => onNodeDoubleClick && onNodeDoubleClick({ type: 'thread', path: [catIndex, threadIndex] })}
-                                    >
-                                        <span className="tree-expand" onClick={(e) => { e.stopPropagation(); toggleExpand(thread.id); }}>
-                                            {expandedItems.has(thread.id) ? '▼' : '▶'}
-                                        </span>
-                                        {thread.title} {thread.pinned && '📌'}
-                                    </div>
-                                    {expandedItems.has(thread.id) && thread.posts.map((post, postIndex) => (
-                                        <div 
-                                            key={post.id}
-                                            className={`tree-item post ${selectedItem?.type === 'post' && selectedItem?.path[0] === catIndex && selectedItem?.path[1] === threadIndex && selectedItem?.path[2] === postIndex ? 'selected' : ''}`}
-                                            onClick={() => setSelectedItem({ type: 'post', path: [catIndex, threadIndex, postIndex] })}
-                                            onDoubleClick={() => onNodeDoubleClick && onNodeDoubleClick({ type: 'post', path: [catIndex, threadIndex, postIndex] })}
-                                        >
-                                            <span className="tree-expand"></span>
-                                            {post.user_name}: {post.body.substring(0, 30)}...
+                            {expandedItems.has(category.id) && (() => {
+                                if (!groupByChapter) {
+                                    // Normal view - show all threads
+                                    return category.threads.map((thread, threadIndex) => (
+                                        <div key={thread.id}>
+                                            <div 
+                                                className={`tree-item thread ${selectedItem?.type === 'thread' && selectedItem?.path[0] === catIndex && selectedItem?.path[1] === threadIndex ? 'selected' : ''}`}
+                                                onClick={() => setSelectedItem({ type: 'thread', path: [catIndex, threadIndex] })}
+                                                onDoubleClick={() => onNodeDoubleClick && onNodeDoubleClick({ type: 'thread', path: [catIndex, threadIndex] })}
+                                            >
+                                                <span className="tree-expand" onClick={(e) => { e.stopPropagation(); toggleExpand(thread.id); }}>
+                                                    {expandedItems.has(thread.id) ? '▼' : '▶'}
+                                                </span>
+                                                {thread.title} {thread.pinned && '📌'}
+                                            </div>
+                                            {expandedItems.has(thread.id) && thread.posts.map((post, postIndex) => (
+                                                <div 
+                                                    key={post.id}
+                                                    className={`tree-item post ${selectedItem?.type === 'post' && selectedItem?.path[0] === catIndex && selectedItem?.path[1] === threadIndex && selectedItem?.path[2] === postIndex ? 'selected' : ''}`}
+                                                    onClick={() => setSelectedItem({ type: 'post', path: [catIndex, threadIndex, postIndex] })}
+                                                    onDoubleClick={() => onNodeDoubleClick && onNodeDoubleClick({ type: 'post', path: [catIndex, threadIndex, postIndex] })}
+                                                >
+                                                    {post.user_name}: {post.body.substring(0, 30)}...
+                                                </div>
+                                            ))}
                                         </div>
-                                    ))}
-                                </div>
-                            ))}
+                                    ));
+                                } else {
+                                    // Grouped view - organize by chapter
+                                    const grouped = {};
+                                    const noChapter = [];
+                                    
+                                    category.threads.forEach((thread, threadIndex) => {
+                                        if (thread.chapter) {
+                                            if (!grouped[thread.chapter]) {
+                                                grouped[thread.chapter] = [];
+                                            }
+                                            grouped[thread.chapter].push({ thread, threadIndex });
+                                        } else {
+                                            noChapter.push({ thread, threadIndex });
+                                        }
+                                    });
+
+                                    const chapters = Object.keys(grouped).sort();
+
+                                    return (
+                                        <>
+                                            {chapters.map(chapterName => (
+                                                <div key={`chapter-${chapterName}`}>
+                                                    <div 
+                                                        style={{
+                                                            padding: '6px 12px 6px 32px',
+                                                            fontSize: '12px',
+                                                            fontWeight: 'bold',
+                                                            color: '#4ec9b0',
+                                                            marginTop: '8px',
+                                                            marginBottom: '4px',
+                                                            cursor: 'pointer',
+                                                            borderRadius: '4px',
+                                                            background: expandedItems.has(`chapter-${chapterName}`) ? '#2d3d2d' : 'transparent'
+                                                        }}
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            toggleExpand(`chapter-${chapterName}`);
+                                                        }}
+                                                    >
+                                                        <span style={{marginRight: '6px'}}>
+                                                            {expandedItems.has(`chapter-${chapterName}`) ? '▼' : '▶'}
+                                                        </span>
+                                                        📚 {chapterName} ({grouped[chapterName].length})
+                                                    </div>
+                                                    {expandedItems.has(`chapter-${chapterName}`) && grouped[chapterName].map(({thread, threadIndex}) => (
+                                                        <div key={thread.id}>
+                                                            <div 
+                                                                className={`tree-item thread ${selectedItem?.type === 'thread' && selectedItem?.path[0] === catIndex && selectedItem?.path[1] === threadIndex ? 'selected' : ''}`}
+                                                                style={{paddingLeft: '52px'}}
+                                                                onClick={() => setSelectedItem({ type: 'thread', path: [catIndex, threadIndex] })}
+                                                                onDoubleClick={() => onNodeDoubleClick && onNodeDoubleClick({ type: 'thread', path: [catIndex, threadIndex] })}
+                                                            >
+                                                                <span className="tree-expand" onClick={(e) => { e.stopPropagation(); toggleExpand(thread.id); }}>
+                                                                    {expandedItems.has(thread.id) ? '▼' : '▶'}
+                                                                </span>
+                                                                {thread.title} {thread.pinned && '📌'}
+                                                            </div>
+                                                            {expandedItems.has(thread.id) && thread.posts.map((post, postIndex) => (
+                                                                <div 
+                                                                    key={post.id}
+                                                                    className={`tree-item post ${selectedItem?.type === 'post' && selectedItem?.path[0] === catIndex && selectedItem?.path[1] === threadIndex && selectedItem?.path[2] === postIndex ? 'selected' : ''}`}
+                                                                    style={{paddingLeft: '72px'}}
+                                                                    onClick={() => setSelectedItem({ type: 'post', path: [catIndex, threadIndex, postIndex] })}
+                                                                    onDoubleClick={() => onNodeDoubleClick && onNodeDoubleClick({ type: 'post', path: [catIndex, threadIndex, postIndex] })}
+                                                                >
+                                                                    {post.user_name}: {post.body.substring(0, 30)}...
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ))}
+                                            {noChapter.length > 0 && (
+                                                <div key="no-chapter">
+                                                    <div 
+                                                        style={{
+                                                            padding: '6px 12px 6px 32px',
+                                                            fontSize: '12px',
+                                                            fontWeight: 'bold',
+                                                            color: '#858585',
+                                                            marginTop: '8px',
+                                                            marginBottom: '4px',
+                                                            cursor: 'pointer',
+                                                            borderRadius: '4px',
+                                                            background: expandedItems.has('no-chapter') ? '#2d2d2d' : 'transparent'
+                                                        }}
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            toggleExpand('no-chapter');
+                                                        }}
+                                                    >
+                                                        <span style={{marginRight: '6px'}}>
+                                                            {expandedItems.has('no-chapter') ? '▼' : '▶'}
+                                                        </span>
+                                                        📝 Ungrouped ({noChapter.length})
+                                                    </div>
+                                                    {expandedItems.has('no-chapter') && noChapter.map(({thread, threadIndex}) => (
+                                                        <div key={thread.id}>
+                                                            <div 
+                                                                className={`tree-item thread ${selectedItem?.type === 'thread' && selectedItem?.path[0] === catIndex && selectedItem?.path[1] === threadIndex ? 'selected' : ''}`}
+                                                                style={{paddingLeft: '52px'}}
+                                                                onClick={() => setSelectedItem({ type: 'thread', path: [catIndex, threadIndex] })}
+                                                                onDoubleClick={() => onNodeDoubleClick && onNodeDoubleClick({ type: 'thread', path: [catIndex, threadIndex] })}
+                                                            >
+                                                                <span className="tree-expand" onClick={(e) => { e.stopPropagation(); toggleExpand(thread.id); }}>
+                                                                    {expandedItems.has(thread.id) ? '▼' : '▶'}
+                                                                </span>
+                                                                {thread.title} {thread.pinned && '📌'}
+                                                            </div>
+                                                            {expandedItems.has(thread.id) && thread.posts.map((post, postIndex) => (
+                                                                <div 
+                                                                    key={post.id}
+                                                                    className={`tree-item post ${selectedItem?.type === 'post' && selectedItem?.path[0] === catIndex && selectedItem?.path[1] === threadIndex && selectedItem?.path[2] === postIndex ? 'selected' : ''}`}
+                                                                    style={{paddingLeft: '72px'}}
+                                                                    onClick={() => setSelectedItem({ type: 'post', path: [catIndex, threadIndex, postIndex] })}
+                                                                    onDoubleClick={() => onNodeDoubleClick && onNodeDoubleClick({ type: 'post', path: [catIndex, threadIndex, postIndex] })}
+                                                                >
+                                                                    {post.user_name}: {post.body.substring(0, 30)}...
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </>
+                                    );
+                                }
+                            })()}
                         </div>
                     ))}
                 </div>
@@ -1384,6 +1542,18 @@
                     <div className="form-group">
                         <label>Icon</label>
                         <input type="text" value={item.icon} onChange={(e) => updateItem({ icon: e.target.value })} />
+                    </div>
+                    <div className="form-group">
+                        <label>Chapter/Group (Optional)</label>
+                        <input 
+                            type="text" 
+                            value={item.chapter || ''} 
+                            onChange={(e) => updateItem({ chapter: e.target.value || undefined })}
+                            placeholder="e.g., Chapter 1, Act 2, Tutorial" 
+                        />
+                        <small style={{color: '#858585', fontSize: '12px', marginTop: '4px', display: 'block'}}>
+                            Organize threads into chapters or story arcs
+                        </small>
                     </div>
                     <div className="form-group">
                         <label className="checkbox-group">
