@@ -1,0 +1,258 @@
+[
+  {
+    "id": "cat_test",
+    "title": "Test Category - Validation Issues",
+    "subtitle": "Contains intentional errors for testing",
+    "icon": "spr_icon_test",
+    "threads": [
+      {
+        "id": "thread_conflicts",
+        "title": "Thread 1 - Flag Conflicts",
+        "subtitle": "Multiple choices set the same flag",
+        "icon": "spr_icon_conflict",
+        "pinned": false,
+        "posts": [
+          {
+            "id": "post_conflict_1",
+            "type": "original",
+            "timestamp": 100,
+            "user_name": "Admin",
+            "user_rank": "Administrator",
+            "avatar": "spr_avatar_admin",
+            "body": "This is the first choice point. Both options set FLAG_COMPLETE but they're mutually exclusive.",
+            "options": [
+              {
+                "text": "Choose Path A",
+                "reply_body": "I chose path A!",
+                "set_flag": "FLAG_COMPLETE"
+              },
+              {
+                "text": "Choose Path B",
+                "reply_body": "I chose path B!",
+                "set_flag": "FLAG_COMPLETE"
+              }
+            ]
+          },
+          {
+            "id": "post_conflict_2",
+            "type": "original",
+            "timestamp": 200,
+            "user_name": "TestUser",
+            "user_rank": "Member",
+            "avatar": "spr_avatar_user",
+            "body": "This is another post that also sets FLAG_COMPLETE, creating a conflict.",
+            "options": [
+              {
+                "text": "Agree",
+                "reply_body": "I agree!",
+                "set_flag": "FLAG_COMPLETE"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "thread_circular_1",
+        "title": "Thread 2 - Circular Dependencies Part 1",
+        "subtitle": "Post A requires flag from Post B",
+        "icon": "spr_icon_circular",
+        "pinned": false,
+        "posts": [
+          {
+            "id": "post_circular_a",
+            "type": "original",
+            "timestamp": 300,
+            "user_name": "UserAlpha",
+            "user_rank": "Member",
+            "avatar": "spr_avatar_alpha",
+            "body": "Post A: I require FLAG_B to appear, and I set FLAG_A.",
+            "conditions": {
+              "requires_flag": "FLAG_B"
+            },
+            "options": [
+              {
+                "text": "Continue",
+                "reply_body": "Continuing from A...",
+                "set_flag": "FLAG_A"
+              }
+            ]
+          },
+          {
+            "id": "post_circular_b",
+            "type": "original",
+            "timestamp": 400,
+            "user_name": "UserBeta",
+            "user_rank": "Member",
+            "avatar": "spr_avatar_beta",
+            "body": "Post B: I require FLAG_A to appear, and I set FLAG_B. This creates a circular dependency!",
+            "conditions": {
+              "requires_flag": "FLAG_A"
+            },
+            "options": [
+              {
+                "text": "Continue",
+                "reply_body": "Continuing from B...",
+                "set_flag": "FLAG_B"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "thread_unreachable",
+        "title": "Thread 3 - Unreachable Content",
+        "subtitle": "Requires a flag that is never set",
+        "icon": "spr_icon_unreachable",
+        "pinned": false,
+        "conditions": {
+          "requires_flag": "FLAG_NEVER_SET"
+        },
+        "posts": [
+          {
+            "id": "post_unreachable_1",
+            "type": "original",
+            "timestamp": 500,
+            "user_name": "GhostUser",
+            "user_rank": "Member",
+            "avatar": "spr_avatar_ghost",
+            "body": "This thread can never be reached because FLAG_NEVER_SET is never set anywhere!"
+          }
+        ]
+      },
+      {
+        "id": "thread_missing_fields",
+        "title": "Thread 4 - Missing Fields",
+        "subtitle": "Posts with incomplete data",
+        "icon": "spr_icon_missing",
+        "pinned": false,
+        "posts": [
+          {
+            "id": "post_missing_1",
+            "type": "original",
+            "timestamp": 600,
+            "user_name": "IncompleteUser",
+            "user_rank": "Member",
+            "avatar": "spr_avatar_incomplete",
+            "body": "This post has an option without reply_body.",
+            "options": [
+              {
+                "text": "Option without reply",
+                "set_flag": "FLAG_NO_REPLY"
+              }
+            ]
+          },
+          {
+            "id": "post_missing_2",
+            "type": "reply",
+            "timestamp": 700,
+            "user_name": "Player",
+            "user_rank": "Player",
+            "avatar": "spr_avatar_player",
+            "body": "This is a reply post but it's missing quote_user and quote_text."
+          }
+        ]
+      },
+      {
+        "id": "thread_duplicate_ids",
+        "title": "Thread 5 - Duplicate IDs",
+        "subtitle": "Posts with the same ID",
+        "icon": "spr_icon_duplicate",
+        "pinned": false,
+        "posts": [
+          {
+            "id": "post_duplicate",
+            "type": "original",
+            "timestamp": 800,
+            "user_name": "UserOne",
+            "user_rank": "Member",
+            "avatar": "spr_avatar_one",
+            "body": "First post with duplicate ID."
+          },
+          {
+            "id": "post_duplicate",
+            "type": "original",
+            "timestamp": 900,
+            "user_name": "UserTwo",
+            "user_rank": "Member",
+            "avatar": "spr_avatar_two",
+            "body": "Second post with the SAME ID - this should trigger an error!"
+          }
+        ]
+      },
+      {
+        "id": "thread_complex_circular",
+        "title": "Thread 6 - Complex Circular Chain",
+        "subtitle": "A -> B -> C -> A circular dependency",
+        "icon": "spr_icon_complex",
+        "pinned": false,
+        "posts": [
+          {
+            "id": "post_chain_a",
+            "type": "original",
+            "timestamp": 1000,
+            "user_name": "ChainA",
+            "user_rank": "Member",
+            "avatar": "spr_avatar_chain_a",
+            "body": "Chain A: Requires FLAG_CHAIN_C, sets FLAG_CHAIN_A",
+            "conditions": {
+              "requires_flag": "FLAG_CHAIN_C"
+            },
+            "options": [
+              {
+                "text": "Next",
+                "reply_body": "Moving to next in chain...",
+                "set_flag": "FLAG_CHAIN_A"
+              }
+            ]
+          },
+          {
+            "id": "post_chain_b",
+            "type": "original",
+            "timestamp": 1100,
+            "user_name": "ChainB",
+            "user_rank": "Member",
+            "avatar": "spr_avatar_chain_b",
+            "body": "Chain B: Requires FLAG_CHAIN_A, sets FLAG_CHAIN_B",
+            "conditions": {
+              "requires_flag": "FLAG_CHAIN_A"
+            },
+            "options": [
+              {
+                "text": "Next",
+                "reply_body": "Moving to next in chain...",
+                "set_flag": "FLAG_CHAIN_B"
+              }
+            ]
+          },
+          {
+            "id": "post_chain_c",
+            "type": "original",
+            "timestamp": 1200,
+            "user_name": "ChainC",
+            "user_rank": "Member",
+            "avatar": "spr_avatar_chain_c",
+            "body": "Chain C: Requires FLAG_CHAIN_B, sets FLAG_CHAIN_C. This completes the circle!",
+            "conditions": {
+              "requires_flag": "FLAG_CHAIN_B"
+            },
+            "options": [
+              {
+                "text": "Complete Circle",
+                "reply_body": "Back to the start...",
+                "set_flag": "FLAG_CHAIN_C"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "thread_dead_end",
+        "title": "Thread 7 - Dead End",
+        "subtitle": "This thread has no posts",
+        "icon": "spr_icon_empty",
+        "pinned": false,
+        "posts": []
+      }
+    ]
+  }
+]

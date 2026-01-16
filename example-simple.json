@@ -1,0 +1,144 @@
+[
+  {
+    "id": "cat_tutorial",
+    "title": "Tutorial Area",
+    "subtitle": "Learn the basics",
+    "icon": "spr_icon_tutorial",
+    "threads": [
+      {
+        "id": "thread_welcome",
+        "title": "Welcome!",
+        "subtitle": "Getting started",
+        "icon": "spr_icon_chat",
+        "pinned": true,
+        "posts": [
+          {
+            "id": "post_welcome_001",
+            "type": "original",
+            "timestamp": 100,
+            "user_name": "Guide",
+            "user_rank": "Helper",
+            "avatar": "spr_avatar_guide",
+            "body": "Welcome to the Narrative Editor example! This is a simple demonstration of the JSON structure. You can edit this content in the editor.",
+            "options": [
+              {
+                "text": "Thanks for the welcome!",
+                "reply_body": "Thank you so much! I'm excited to get started.",
+                "set_flag": "FLAG_GREETED"
+              },
+              {
+                "text": "What can I do here?",
+                "reply_body": "What features does this editor have?",
+                "set_flag": "FLAG_ASKED_FEATURES"
+              }
+            ]
+          },
+          {
+            "id": "post_welcome_002",
+            "type": "reply",
+            "timestamp": 101,
+            "user_name": "Player",
+            "user_rank": "Newbie",
+            "avatar": "spr_avatar_player",
+            "body": "Thank you so much! I'm excited to get started.",
+            "quote_user": "Guide",
+            "quote_text": "Welcome to the Narrative Editor example!",
+            "conditions": {
+              "requires_flag": "FLAG_GREETED"
+            }
+          },
+          {
+            "id": "post_welcome_003",
+            "type": "original",
+            "timestamp": 102,
+            "user_name": "Guide",
+            "user_rank": "Helper",
+            "avatar": "spr_avatar_guide",
+            "body": "Great! Let me show you around. You can create branching narratives with choices, set flags to track player decisions, and use conditions to show content based on those flags.",
+            "conditions": {
+              "requires_flag": "FLAG_GREETED",
+              "min_day": 1
+            }
+          }
+        ]
+      },
+      {
+        "id": "thread_features",
+        "title": "Feature Overview",
+        "subtitle": "What the editor can do",
+        "icon": "spr_icon_info",
+        "pinned": false,
+        "conditions": {
+          "requires_flag": "FLAG_ASKED_FEATURES"
+        },
+        "posts": [
+          {
+            "id": "post_features_001",
+            "type": "original",
+            "timestamp": 150,
+            "user_name": "Guide",
+            "user_rank": "Helper",
+            "avatar": "spr_avatar_guide",
+            "body": "Here are some key features:\n\n• Tree View - Hierarchical editing\n• Graph View - Visual representation\n• Validation - Catch errors early\n• Search & Replace - Find and update content\n• Bulk Operations - Make changes to multiple items\n• Flag Debugger - Test your branching logic",
+            "options": [
+              {
+                "text": "That sounds powerful!",
+                "reply_body": "Wow, those are some great features!",
+                "set_flag": "FLAG_IMPRESSED"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "cat_advanced",
+    "title": "Advanced Features",
+    "subtitle": "Power user tools",
+    "icon": "spr_icon_advanced",
+    "threads": [
+      {
+        "id": "thread_flags",
+        "title": "Understanding Flags",
+        "subtitle": "Conditional content",
+        "icon": "spr_icon_flag",
+        "pinned": false,
+        "conditions": {
+          "min_day": 2,
+          "requires_flag": "FLAG_GREETED"
+        },
+        "posts": [
+          {
+            "id": "post_flags_001",
+            "type": "original",
+            "timestamp": 200,
+            "user_name": "Guide",
+            "user_rank": "Helper",
+            "avatar": "spr_avatar_guide",
+            "body": "Flags are how you track player choices and unlock content. When a player selects an option that sets a flag, that flag becomes active. You can then use 'requires_flag' conditions to show content only to players who have that flag.",
+            "options": [
+              {
+                "text": "Can I test flags?",
+                "reply_body": "How do I test if my flag logic works correctly?",
+                "set_flag": "FLAG_WANTS_TESTING"
+              }
+            ]
+          },
+          {
+            "id": "post_flags_002",
+            "type": "original",
+            "timestamp": 201,
+            "user_name": "Guide",
+            "user_rank": "Helper",
+            "avatar": "spr_avatar_guide",
+            "body": "Yes! Use the Flag Debugger in Graph View. You can toggle flags on and off to see which content becomes accessible. Unreachable content will be dimmed.",
+            "conditions": {
+              "requires_flag": "FLAG_WANTS_TESTING"
+            }
+          }
+        ]
+      }
+    ]
+  }
+]
