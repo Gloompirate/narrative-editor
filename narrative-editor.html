@@ -426,7 +426,19 @@
         ];
 
         function App() {
-            const [data, setData] = useState(SAMPLE_DATA);
+            const [data, setData] = useState(() => {
+                // Try to load auto-saved data first
+                try {
+                    const saved = localStorage.getItem('narrative-editor-data-autosave');
+                    if (saved) {
+                        console.log('Loaded auto-saved data');
+                        return JSON.parse(saved);
+                    }
+                } catch (e) {
+                    console.error('Failed to load auto-save:', e);
+                }
+                return SAMPLE_DATA;
+            });
             const [selectedItem, setSelectedItem] = useState(null);
             const [view, setView] = useState('tree'); // 'tree', 'graph', 'json', 'utilities', 'preview'
             const [expandedItems, setExpandedItems] = useState(new Set(['cat_general']));
@@ -434,13 +446,63 @@
             const [currentDay, setCurrentDay] = useState(0);
             const [nextTimestamp, setNextTimestamp] = useState(1000);
             const [detailModalItem, setDetailModalItem] = useState(null);
-            const [notes, setNotes] = useState({}); // nodeId -> note text (not exported)
+            const [notes, setNotes] = useState(() => {
+                // Load notes from localStorage
+                try {
+                    const saved = localStorage.getItem('narrative-editor-notes');
+                    return saved ? JSON.parse(saved) : {};
+                } catch (e) {
+                    console.error('Failed to load notes:', e);
+                    return {};
+                }
+            });
             const [selectedNodes, setSelectedNodes] = useState(new Set()); // for multi-select
             const [searchTerm, setSearchTerm] = useState('');
             const [replaceTerm, setReplaceTerm] = useState('');
             const [simulatedFlags, setSimulatedFlags] = useState(new Set()); // for preview simulation
             const [simulatedDay, setSimulatedDay] = useState(0); // for preview simulation
-            const [itemTags, setItemTags] = useState({}); // nodeId -> array of tags (not exported)
+            const [itemTags, setItemTags] = useState(() => {
+                // Load tags from localStorage
+                try {
+                    const saved = localStorage.getItem('narrative-editor-tags');
+                    return saved ? JSON.parse(saved) : {};
+                } catch (e) {
+                    console.error('Failed to load tags:', e);
+                    return {};
+                }
+            });
+
+            // Save notes to localStorage whenever they change
+            useEffect(() => {
+                try {
+                    localStorage.setItem('narrative-editor-notes', JSON.stringify(notes));
+                } catch (e) {
+                    console.error('Failed to save notes:', e);
+                }
+            }, [notes]);
+
+            // Save tags to localStorage whenever they change
+            useEffect(() => {
+                try {
+                    localStorage.setItem('narrative-editor-tags', JSON.stringify(itemTags));
+                } catch (e) {
+                    console.error('Failed to save tags:', e);
+                }
+            }, [itemTags]);
+
+            // Auto-save data to localStorage every 30 seconds or on change
+            useEffect(() => {
+                const timer = setTimeout(() => {
+                    try {
+                        localStorage.setItem('narrative-editor-data-autosave', JSON.stringify(data));
+                        localStorage.setItem('narrative-editor-data-autosave-time', new Date().toISOString());
+                    } catch (e) {
+                        console.error('Failed to auto-save:', e);
+                    }
+                }, 30000); // 30 seconds
+
+                return () => clearTimeout(timer);
+            }, [data]);
 
             // Smart ID generation
             const generateId = (type, text, existingIds) => {
@@ -1113,6 +1175,24 @@
                     <button onClick={onExport} className="secondary">Export JSON</button>
                     <button className="secondary" onClick={() => fileInputRef.current?.click()}>
                         Import JSON
+                    </button>
+                    <button className="secondary" onClick={() => {
+                        try {
+                            const saved = localStorage.getItem('narrative-editor-data-autosave');
+                            const time = localStorage.getItem('narrative-editor-data-autosave-time');
+                            if (saved) {
+                                if (confirm(`Load auto-saved data from ${time ? new Date(time).toLocaleString() : 'unknown time'}?`)) {
+                                    const data = JSON.parse(saved);
+                                    window.location.reload(); // Reload with auto-save
+                                }
+                            } else {
+                                alert('No auto-saved data found');
+                            }
+                        } catch (e) {
+                            alert('Failed to load auto-save: ' + e.message);
+                        }
+                    }} title="Load auto-saved data from browser storage">
+                        💾 Load Auto-save
                     </button>
                     <input 
                         ref={fileInputRef}
@@ -2712,12 +2792,6 @@
                             className={activeTab === 'playthrough' ? '' : 'secondary'}
                         >
                             🎮 Playthrough
-                        </button>
-                        <button 
-                            onClick={() => setActiveTab('search')} 
-                            className={activeTab === 'search' ? '' : 'secondary'}
-                        >
-                            🔎 Search
                         </button>
                         <button 
                             onClick={() => setActiveTab('bulkedit')} 
