@@ -1,0 +1,1532 @@
+[
+  {
+    "id": "cat_1",
+    "title": "Category 1",
+    "subtitle": "Test category 1",
+    "icon": "spr_icon_politics",
+    "threads": [
+      {
+        "id": "th_cat_1_0",
+        "title": "Thread 1",
+        "subtitle": "Debug thread 1",
+        "icon": "spr_icon_finance",
+        "pinned": true,
+        "conditions": {},
+        "posts": [
+          {
+            "id": "p_th_cat_1_0_0",
+            "type": "original",
+            "timestamp": 753,
+            "user_name": "UserMu",
+            "user_rank": "Grade C",
+            "avatar": "spr_avatar_thecleaner",
+            "body": "Original post for Thread 1.",
+            "conditions": {},
+            "options": [
+              {
+                "text": "Reply: Agree",
+                "set_flag": "FLAG_TH_CAT_1_0_AGREE"
+              },
+              {
+                "text": "Reply: Disagree",
+                "set_flag": "FLAG_TH_CAT_1_0_DISAGREE"
+              }
+            ]
+          },
+          {
+            "id": "p_th_cat_1_0_1",
+            "type": "reply",
+            "timestamp": 763,
+            "user_name": "UserNu",
+            "user_rank": "Grade C",
+            "avatar": "spr_avatar_thedoctor",
+            "body": "Reply 1 to Thread 1.",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_1_0_DISAGREE"
+            },
+            "quote_user": "UserAlpha",
+            "quote_text": "Original post"
+          },
+          {
+            "id": "p_th_cat_1_0_2",
+            "type": "reply",
+            "timestamp": 773,
+            "user_name": "UserDelta",
+            "user_rank": "Grade C",
+            "avatar": "spr_avatar_engineer",
+            "body": "Reply 2 to Thread 1.",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_1_0_AGREE"
+            },
+            "quote_user": "UserAlpha",
+            "quote_text": "Original post"
+          },
+          {
+            "id": "p_th_cat_1_0_3",
+            "type": "reply",
+            "timestamp": 783,
+            "user_name": "UserIota",
+            "user_rank": "Grade B",
+            "avatar": "spr_avatar_assistant",
+            "body": "Reply 3 to Thread 1.",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_1_0_DISAGREE"
+            },
+            "quote_user": "UserAlpha",
+            "quote_text": "Original post"
+          }
+        ]
+      },
+      {
+        "id": "th_cat_1_1",
+        "title": "Thread 2",
+        "subtitle": "Debug thread 2",
+        "icon": "spr_icon_tech",
+        "pinned": false,
+        "conditions": {},
+        "posts": [
+          {
+            "id": "p_th_cat_1_1_0",
+            "type": "original",
+            "timestamp": 950,
+            "user_name": "UserTheta",
+            "user_rank": "Grade B",
+            "avatar": "spr_avatar_thedoctor",
+            "body": "Original post for Thread 2.",
+            "conditions": {},
+            "options": [
+              {
+                "text": "Reply: Agree",
+                "set_flag": "FLAG_TH_CAT_1_1_AGREE"
+              },
+              {
+                "text": "Reply: Disagree",
+                "set_flag": "FLAG_TH_CAT_1_1_DISAGREE"
+              }
+            ]
+          },
+          {
+            "id": "p_th_cat_1_1_1",
+            "type": "reply",
+            "timestamp": 960,
+            "user_name": "UserAlpha",
+            "user_rank": "Grade C",
+            "avatar": "spr_avatar_thedoctor",
+            "body": "Reply 1 to Thread 2.",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_1_1_DISAGREE"
+            },
+            "quote_user": "UserAlpha",
+            "quote_text": "Original post"
+          },
+          {
+            "id": "p_th_cat_1_1_2",
+            "type": "reply",
+            "timestamp": 970,
+            "user_name": "UserIota",
+            "user_rank": "Netrunner",
+            "avatar": "spr_avatar_anya",
+            "body": "Reply 2 to Thread 2.",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_1_1_AGREE"
+            },
+            "quote_user": "UserAlpha",
+            "quote_text": "Original post"
+          },
+          {
+            "id": "p_th_cat_1_1_3",
+            "type": "reply",
+            "timestamp": 980,
+            "user_name": "UserXi",
+            "user_rank": "Administrator",
+            "avatar": "spr_avatar_narrator",
+            "body": "Reply 3 to Thread 2.",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_1_1_DISAGREE"
+            },
+            "quote_user": "UserAlpha",
+            "quote_text": "Original post"
+          }
+        ]
+      },
+      {
+        "id": "th_cat_1_2",
+        "title": "Thread 3",
+        "subtitle": "Debug thread 3",
+        "icon": "spr_icon_corp",
+        "pinned": false,
+        "conditions": {},
+        "posts": [
+          {
+            "id": "p_th_cat_1_2_0",
+            "type": "original",
+            "timestamp": 879,
+            "user_name": "UserOmicron",
+            "user_rank": "Moderator",
+            "avatar": "spr_avatar_engineer",
+            "body": "Original post for Thread 3.",
+            "conditions": {},
+            "options": [
+              {
+                "text": "Reply: Agree",
+                "set_flag": "FLAG_TH_CAT_1_2_AGREE"
+              },
+              {
+                "text": "Reply: Disagree",
+                "set_flag": "FLAG_TH_CAT_1_2_DISAGREE"
+              }
+            ]
+          },
+          {
+            "id": "p_th_cat_1_2_1",
+            "type": "reply",
+            "timestamp": 889,
+            "user_name": "UserMu",
+            "user_rank": "Administrator",
+            "avatar": "spr_avatar_thedoctor",
+            "body": "Reply 1 to Thread 3.",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_1_2_DISAGREE"
+            },
+            "quote_user": "UserAlpha",
+            "quote_text": "Original post"
+          },
+          {
+            "id": "p_th_cat_1_2_2",
+            "type": "reply",
+            "timestamp": 899,
+            "user_name": "UserMu",
+            "user_rank": "Grade A",
+            "avatar": "spr_avatar_anya",
+            "body": "Reply 2 to Thread 3.",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_1_2_AGREE"
+            },
+            "quote_user": "UserAlpha",
+            "quote_text": "Original post"
+          }
+        ]
+      },
+      {
+        "id": "th_cat_1_3",
+        "title": "Thread 4",
+        "subtitle": "Debug thread 4",
+        "icon": "spr_icon_offworld",
+        "pinned": false,
+        "conditions": {},
+        "posts": [
+          {
+            "id": "p_th_cat_1_3_0",
+            "type": "original",
+            "timestamp": 127,
+            "user_name": "UserAlpha",
+            "user_rank": "Grade B",
+            "avatar": "spr_avatar_jax",
+            "body": "Original post for Thread 4.",
+            "conditions": {},
+            "options": [
+              {
+                "text": "Reply: Agree",
+                "set_flag": "FLAG_TH_CAT_1_3_AGREE"
+              },
+              {
+                "text": "Reply: Disagree",
+                "set_flag": "FLAG_TH_CAT_1_3_DISAGREE"
+              }
+            ]
+          },
+          {
+            "id": "p_th_cat_1_3_1",
+            "type": "reply",
+            "timestamp": 137,
+            "user_name": "UserXi",
+            "user_rank": "Grade B",
+            "avatar": "spr_avatar_assistant",
+            "body": "Reply 1 to Thread 4.",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_1_3_DISAGREE"
+            },
+            "quote_user": "UserAlpha",
+            "quote_text": "Original post"
+          },
+          {
+            "id": "p_th_cat_1_3_2",
+            "type": "reply",
+            "timestamp": 147,
+            "user_name": "UserBeta",
+            "user_rank": "Grade B",
+            "avatar": "spr_avatar_cipher_2",
+            "body": "Reply 2 to Thread 4.",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_1_3_AGREE"
+            },
+            "quote_user": "UserAlpha",
+            "quote_text": "Original post"
+          },
+          {
+            "id": "p_th_cat_1_3_3",
+            "type": "reply",
+            "timestamp": 157,
+            "user_name": "UserBeta",
+            "user_rank": "Netrunner",
+            "avatar": "spr_avatar_assistant",
+            "body": "Reply 3 to Thread 4.",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_1_3_DISAGREE"
+            },
+            "quote_user": "UserAlpha",
+            "quote_text": "Original post"
+          },
+          {
+            "id": "p_th_cat_1_3_4",
+            "type": "reply",
+            "timestamp": 167,
+            "user_name": "UserEta",
+            "user_rank": "Moderator",
+            "avatar": "spr_avatar_remy",
+            "body": "Reply 4 to Thread 4.",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_1_3_AGREE"
+            },
+            "quote_user": "UserAlpha",
+            "quote_text": "Original post"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "cat_2",
+    "title": "Category 2",
+    "subtitle": "Test category 2",
+    "icon": "spr_icon_crime",
+    "threads": [
+      {
+        "id": "th_cat_2_0",
+        "title": "Thread 5",
+        "subtitle": "Debug thread 5",
+        "icon": "spr_icon_ai",
+        "pinned": true,
+        "conditions": {},
+        "posts": [
+          {
+            "id": "p_th_cat_2_0_0",
+            "type": "original",
+            "timestamp": 246,
+            "user_name": "UserZeta",
+            "user_rank": "Grade D",
+            "avatar": "spr_avatar_evelyn",
+            "body": "Original post for Thread 5.",
+            "conditions": {},
+            "options": [
+              {
+                "text": "Reply: Agree",
+                "set_flag": "FLAG_TH_CAT_2_0_AGREE"
+              },
+              {
+                "text": "Reply: Disagree",
+                "set_flag": "FLAG_TH_CAT_2_0_DISAGREE"
+              }
+            ]
+          },
+          {
+            "id": "p_th_cat_2_0_1",
+            "type": "reply",
+            "timestamp": 256,
+            "user_name": "UserEpsilon",
+            "user_rank": "Administrator",
+            "avatar": "spr_avatar_sparky",
+            "body": "Reply 1 to Thread 5.",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_2_0_DISAGREE"
+            },
+            "quote_user": "UserAlpha",
+            "quote_text": "Original post"
+          },
+          {
+            "id": "p_th_cat_2_0_2",
+            "type": "reply",
+            "timestamp": 266,
+            "user_name": "UserNu",
+            "user_rank": "Grade B",
+            "avatar": "spr_avatar_cipher_2",
+            "body": "Reply 2 to Thread 5.",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_2_0_AGREE"
+            },
+            "quote_user": "UserAlpha",
+            "quote_text": "Original post"
+          },
+          {
+            "id": "p_th_cat_2_0_3",
+            "type": "reply",
+            "timestamp": 276,
+            "user_name": "UserBeta",
+            "user_rank": "Grade C",
+            "avatar": "spr_avatar_thecleaner",
+            "body": "Reply 3 to Thread 5.",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_2_0_DISAGREE"
+            },
+            "quote_user": "UserAlpha",
+            "quote_text": "Original post"
+          }
+        ]
+      },
+      {
+        "id": "th_cat_2_1",
+        "title": "Thread 6",
+        "subtitle": "Debug thread 6",
+        "icon": "spr_icon_tech",
+        "pinned": false,
+        "conditions": {},
+        "posts": [
+          {
+            "id": "p_th_cat_2_1_0",
+            "type": "original",
+            "timestamp": 169,
+            "user_name": "UserOmicron",
+            "user_rank": "Grade C",
+            "avatar": "spr_avatar_remy",
+            "body": "Original post for Thread 6.",
+            "conditions": {},
+            "options": [
+              {
+                "text": "Reply: Agree",
+                "set_flag": "FLAG_TH_CAT_2_1_AGREE"
+              },
+              {
+                "text": "Reply: Disagree",
+                "set_flag": "FLAG_TH_CAT_2_1_DISAGREE"
+              }
+            ]
+          },
+          {
+            "id": "p_th_cat_2_1_1",
+            "type": "reply",
+            "timestamp": 179,
+            "user_name": "UserXi",
+            "user_rank": "Netrunner",
+            "avatar": "spr_avatar_ken",
+            "body": "Reply 1 to Thread 6.",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_2_1_DISAGREE"
+            },
+            "quote_user": "UserAlpha",
+            "quote_text": "Original post"
+          },
+          {
+            "id": "p_th_cat_2_1_2",
+            "type": "reply",
+            "timestamp": 189,
+            "user_name": "UserKappa",
+            "user_rank": "Grade C",
+            "avatar": "spr_avatar_anya",
+            "body": "Reply 2 to Thread 6.",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_2_1_AGREE"
+            },
+            "quote_user": "UserAlpha",
+            "quote_text": "Original post"
+          },
+          {
+            "id": "p_th_cat_2_1_3",
+            "type": "reply",
+            "timestamp": 199,
+            "user_name": "UserXi",
+            "user_rank": "Grade D",
+            "avatar": "spr_avatar_jax",
+            "body": "Reply 3 to Thread 6.",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_2_1_DISAGREE"
+            },
+            "quote_user": "UserAlpha",
+            "quote_text": "Original post"
+          },
+          {
+            "id": "p_th_cat_2_1_4",
+            "type": "reply",
+            "timestamp": 209,
+            "user_name": "UserTheta",
+            "user_rank": "Administrator",
+            "avatar": "spr_avatar_assistant",
+            "body": "Reply 4 to Thread 6.",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_2_1_AGREE"
+            },
+            "quote_user": "UserAlpha",
+            "quote_text": "Original post"
+          }
+        ]
+      },
+      {
+        "id": "th_cat_2_2",
+        "title": "Thread 7",
+        "subtitle": "Debug thread 7",
+        "icon": "spr_icon_net",
+        "pinned": false,
+        "conditions": {},
+        "posts": [
+          {
+            "id": "p_th_cat_2_2_0",
+            "type": "original",
+            "timestamp": 501,
+            "user_name": "UserMu",
+            "user_rank": "Grade A",
+            "avatar": "spr_avatar_sparky",
+            "body": "Original post for Thread 7.",
+            "conditions": {},
+            "options": [
+              {
+                "text": "Reply: Agree",
+                "set_flag": "FLAG_TH_CAT_2_2_AGREE"
+              },
+              {
+                "text": "Reply: Disagree",
+                "set_flag": "FLAG_TH_CAT_2_2_DISAGREE"
+              }
+            ]
+          },
+          {
+            "id": "p_th_cat_2_2_1",
+            "type": "reply",
+            "timestamp": 511,
+            "user_name": "UserAlpha",
+            "user_rank": "Grade D",
+            "avatar": "spr_avatar_thecleaner",
+            "body": "Reply 1 to Thread 7.",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_2_2_DISAGREE"
+            },
+            "quote_user": "UserAlpha",
+            "quote_text": "Original post"
+          },
+          {
+            "id": "p_th_cat_2_2_2",
+            "type": "reply",
+            "timestamp": 521,
+            "user_name": "UserXi",
+            "user_rank": "Grade C",
+            "avatar": "spr_avatar_evelyn",
+            "body": "Reply 2 to Thread 7.",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_2_2_AGREE"
+            },
+            "quote_user": "UserAlpha",
+            "quote_text": "Original post"
+          },
+          {
+            "id": "p_th_cat_2_2_3",
+            "type": "reply",
+            "timestamp": 531,
+            "user_name": "UserGamma",
+            "user_rank": "Grade B",
+            "avatar": "spr_avatar_jax",
+            "body": "Reply 3 to Thread 7.",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_2_2_DISAGREE"
+            },
+            "quote_user": "UserAlpha",
+            "quote_text": "Original post"
+          },
+          {
+            "id": "p_th_cat_2_2_4",
+            "type": "reply",
+            "timestamp": 541,
+            "user_name": "UserZeta",
+            "user_rank": "Grade B",
+            "avatar": "spr_avatar_thedoctor",
+            "body": "Reply 4 to Thread 7.",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_2_2_AGREE"
+            },
+            "quote_user": "UserAlpha",
+            "quote_text": "Original post"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "cat_3",
+    "title": "Category 3",
+    "subtitle": "Test category 3",
+    "icon": "spr_icon_health",
+    "threads": [
+      {
+        "id": "th_cat_3_0",
+        "title": "Thread 8",
+        "subtitle": "Debug thread 8",
+        "icon": "spr_icon_ai",
+        "pinned": true,
+        "conditions": {},
+        "posts": [
+          {
+            "id": "p_th_cat_3_0_0",
+            "type": "original",
+            "timestamp": 447,
+            "user_name": "UserEta",
+            "user_rank": "Administrator",
+            "avatar": "spr_avatar_thedoctor",
+            "body": "Original post for Thread 8.",
+            "conditions": {},
+            "options": [
+              {
+                "text": "Reply: Agree",
+                "set_flag": "FLAG_TH_CAT_3_0_AGREE"
+              },
+              {
+                "text": "Reply: Disagree",
+                "set_flag": "FLAG_TH_CAT_3_0_DISAGREE"
+              }
+            ]
+          },
+          {
+            "id": "p_th_cat_3_0_1",
+            "type": "reply",
+            "timestamp": 457,
+            "user_name": "UserDelta",
+            "user_rank": "Netrunner",
+            "avatar": "spr_avatar_system",
+            "body": "Reply 1 to Thread 8.",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_3_0_DISAGREE"
+            },
+            "quote_user": "UserAlpha",
+            "quote_text": "Original post"
+          },
+          {
+            "id": "p_th_cat_3_0_2",
+            "type": "reply",
+            "timestamp": 467,
+            "user_name": "UserXi",
+            "user_rank": "Grade C",
+            "avatar": "spr_avatar_anya",
+            "body": "Reply 2 to Thread 8.",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_3_0_AGREE"
+            },
+            "quote_user": "UserAlpha",
+            "quote_text": "Original post"
+          },
+          {
+            "id": "p_th_cat_3_0_3",
+            "type": "reply",
+            "timestamp": 477,
+            "user_name": "UserDelta",
+            "user_rank": "Grade B",
+            "avatar": "spr_avatar_cipher_2",
+            "body": "Reply 3 to Thread 8.",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_3_0_DISAGREE"
+            },
+            "quote_user": "UserAlpha",
+            "quote_text": "Original post"
+          },
+          {
+            "id": "p_th_cat_3_0_4",
+            "type": "reply",
+            "timestamp": 487,
+            "user_name": "UserAlpha",
+            "user_rank": "Grade B",
+            "avatar": "spr_avatar_assistant",
+            "body": "Reply 4 to Thread 8.",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_3_0_AGREE"
+            },
+            "quote_user": "UserAlpha",
+            "quote_text": "Original post"
+          }
+        ]
+      },
+      {
+        "id": "th_cat_3_1",
+        "title": "Thread 9",
+        "subtitle": "Debug thread 9",
+        "icon": "spr_icon_entertainment",
+        "pinned": false,
+        "conditions": {},
+        "posts": [
+          {
+            "id": "p_th_cat_3_1_0",
+            "type": "original",
+            "timestamp": 514,
+            "user_name": "UserEta",
+            "user_rank": "Grade C",
+            "avatar": "spr_avatar_evelyn",
+            "body": "Original post for Thread 9.",
+            "conditions": {},
+            "options": [
+              {
+                "text": "Reply: Agree",
+                "set_flag": "FLAG_TH_CAT_3_1_AGREE"
+              },
+              {
+                "text": "Reply: Disagree",
+                "set_flag": "FLAG_TH_CAT_3_1_DISAGREE"
+              }
+            ]
+          },
+          {
+            "id": "p_th_cat_3_1_1",
+            "type": "reply",
+            "timestamp": 524,
+            "user_name": "UserBeta",
+            "user_rank": "Grade D",
+            "avatar": "spr_avatar_jax",
+            "body": "Reply 1 to Thread 9.",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_3_1_DISAGREE"
+            },
+            "quote_user": "UserAlpha",
+            "quote_text": "Original post"
+          },
+          {
+            "id": "p_th_cat_3_1_2",
+            "type": "reply",
+            "timestamp": 534,
+            "user_name": "UserGamma",
+            "user_rank": "Grade D",
+            "avatar": "spr_avatar_engineer",
+            "body": "Reply 2 to Thread 9.",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_3_1_AGREE"
+            },
+            "quote_user": "UserAlpha",
+            "quote_text": "Original post"
+          },
+          {
+            "id": "p_th_cat_3_1_3",
+            "type": "reply",
+            "timestamp": 544,
+            "user_name": "UserOmicron",
+            "user_rank": "Grade B",
+            "avatar": "spr_avatar_sparky",
+            "body": "Reply 3 to Thread 9.",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_3_1_DISAGREE"
+            },
+            "quote_user": "UserAlpha",
+            "quote_text": "Original post"
+          },
+          {
+            "id": "p_th_cat_3_1_4",
+            "type": "reply",
+            "timestamp": 554,
+            "user_name": "UserNu",
+            "user_rank": "Grade C",
+            "avatar": "spr_avatar_cipher_2",
+            "body": "Reply 4 to Thread 9.",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_3_1_AGREE"
+            },
+            "quote_user": "UserAlpha",
+            "quote_text": "Original post"
+          }
+        ]
+      },
+      {
+        "id": "th_cat_3_2",
+        "title": "Thread 10",
+        "subtitle": "Debug thread 10",
+        "icon": "spr_icon_ai",
+        "pinned": false,
+        "conditions": {},
+        "posts": [
+          {
+            "id": "p_th_cat_3_2_0",
+            "type": "original",
+            "timestamp": 147,
+            "user_name": "UserBeta",
+            "user_rank": "Administrator",
+            "avatar": "spr_avatar_jax",
+            "body": "Original post for Thread 10.",
+            "conditions": {},
+            "options": [
+              {
+                "text": "Reply: Agree",
+                "set_flag": "FLAG_TH_CAT_3_2_AGREE"
+              },
+              {
+                "text": "Reply: Disagree",
+                "set_flag": "FLAG_TH_CAT_3_2_DISAGREE"
+              }
+            ]
+          },
+          {
+            "id": "p_th_cat_3_2_1",
+            "type": "reply",
+            "timestamp": 157,
+            "user_name": "UserAlpha",
+            "user_rank": "Administrator",
+            "avatar": "spr_avatar_cipher_2",
+            "body": "Reply 1 to Thread 10.",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_3_2_DISAGREE"
+            },
+            "quote_user": "UserAlpha",
+            "quote_text": "Original post"
+          },
+          {
+            "id": "p_th_cat_3_2_2",
+            "type": "reply",
+            "timestamp": 167,
+            "user_name": "UserEpsilon",
+            "user_rank": "Grade D",
+            "avatar": "spr_avatar_cipher_2",
+            "body": "Reply 2 to Thread 10.",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_3_2_AGREE"
+            },
+            "quote_user": "UserAlpha",
+            "quote_text": "Original post"
+          }
+        ]
+      },
+      {
+        "id": "th_cat_3_3",
+        "title": "Thread 11",
+        "subtitle": "Debug thread 11",
+        "icon": "spr_icon_hacking",
+        "pinned": false,
+        "conditions": {},
+        "posts": [
+          {
+            "id": "p_th_cat_3_3_0",
+            "type": "original",
+            "timestamp": 590,
+            "user_name": "UserKappa",
+            "user_rank": "Moderator",
+            "avatar": "spr_avatar_jax",
+            "body": "Original post for Thread 11.",
+            "conditions": {},
+            "options": [
+              {
+                "text": "Reply: Agree",
+                "set_flag": "FLAG_TH_CAT_3_3_AGREE"
+              },
+              {
+                "text": "Reply: Disagree",
+                "set_flag": "FLAG_TH_CAT_3_3_DISAGREE"
+              }
+            ]
+          },
+          {
+            "id": "p_th_cat_3_3_1",
+            "type": "reply",
+            "timestamp": 600,
+            "user_name": "UserAlpha",
+            "user_rank": "Grade A",
+            "avatar": "spr_avatar_sparky",
+            "body": "Reply 1 to Thread 11.",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_3_3_DISAGREE"
+            },
+            "quote_user": "UserAlpha",
+            "quote_text": "Original post"
+          },
+          {
+            "id": "p_th_cat_3_3_2",
+            "type": "reply",
+            "timestamp": 610,
+            "user_name": "UserEpsilon",
+            "user_rank": "Netrunner",
+            "avatar": "spr_avatar_sparky",
+            "body": "Reply 2 to Thread 11.",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_3_3_AGREE"
+            },
+            "quote_user": "UserAlpha",
+            "quote_text": "Original post"
+          },
+          {
+            "id": "p_th_cat_3_3_3",
+            "type": "reply",
+            "timestamp": 620,
+            "user_name": "UserAlpha",
+            "user_rank": "Administrator",
+            "avatar": "spr_avatar_evelyn",
+            "body": "Reply 3 to Thread 11.",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_3_3_DISAGREE"
+            },
+            "quote_user": "UserAlpha",
+            "quote_text": "Original post"
+          },
+          {
+            "id": "p_th_cat_3_3_4",
+            "type": "reply",
+            "timestamp": 630,
+            "user_name": "UserLambda",
+            "user_rank": "Administrator",
+            "avatar": "spr_avatar_ken",
+            "body": "Reply 4 to Thread 11.",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_3_3_AGREE"
+            },
+            "quote_user": "UserAlpha",
+            "quote_text": "Original post"
+          },
+          {
+            "id": "p_th_cat_3_3_5",
+            "type": "reply",
+            "timestamp": 640,
+            "user_name": "UserDelta",
+            "user_rank": "Moderator",
+            "avatar": "spr_avatar_remy",
+            "body": "Reply 5 to Thread 11.",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_3_3_DISAGREE"
+            },
+            "quote_user": "UserAlpha",
+            "quote_text": "Original post"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "cat_4",
+    "title": "Category 4",
+    "subtitle": "Test category 4",
+    "icon": "spr_icon_tech",
+    "threads": [
+      {
+        "id": "th_cat_4_0",
+        "title": "Thread 12",
+        "subtitle": "Debug thread 12",
+        "icon": "spr_icon_augmentations",
+        "pinned": true,
+        "conditions": {},
+        "posts": [
+          {
+            "id": "p_th_cat_4_0_0",
+            "type": "original",
+            "timestamp": 178,
+            "user_name": "UserGamma",
+            "user_rank": "Grade B",
+            "avatar": "spr_avatar_narrator",
+            "body": "Original post for Thread 12.",
+            "conditions": {},
+            "options": [
+              {
+                "text": "Reply: Agree",
+                "set_flag": "FLAG_TH_CAT_4_0_AGREE"
+              },
+              {
+                "text": "Reply: Disagree",
+                "set_flag": "FLAG_TH_CAT_4_0_DISAGREE"
+              }
+            ]
+          },
+          {
+            "id": "p_th_cat_4_0_1",
+            "type": "reply",
+            "timestamp": 188,
+            "user_name": "UserIota",
+            "user_rank": "Grade B",
+            "avatar": "spr_avatar_evelyn",
+            "body": "Reply 1 to Thread 12.",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_4_0_DISAGREE"
+            },
+            "quote_user": "UserAlpha",
+            "quote_text": "Original post"
+          },
+          {
+            "id": "p_th_cat_4_0_2",
+            "type": "reply",
+            "timestamp": 198,
+            "user_name": "UserXi",
+            "user_rank": "Grade A",
+            "avatar": "spr_avatar_evelyn",
+            "body": "Reply 2 to Thread 12.",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_4_0_AGREE"
+            },
+            "quote_user": "UserAlpha",
+            "quote_text": "Original post"
+          },
+          {
+            "id": "p_th_cat_4_0_3",
+            "type": "reply",
+            "timestamp": 208,
+            "user_name": "UserZeta",
+            "user_rank": "Administrator",
+            "avatar": "spr_avatar_narrator",
+            "body": "Reply 3 to Thread 12.",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_4_0_DISAGREE"
+            },
+            "quote_user": "UserAlpha",
+            "quote_text": "Original post"
+          },
+          {
+            "id": "p_th_cat_4_0_4",
+            "type": "reply",
+            "timestamp": 218,
+            "user_name": "UserEpsilon",
+            "user_rank": "Grade A",
+            "avatar": "spr_avatar_remy",
+            "body": "Reply 4 to Thread 12.",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_4_0_AGREE"
+            },
+            "quote_user": "UserAlpha",
+            "quote_text": "Original post"
+          }
+        ]
+      },
+      {
+        "id": "th_cat_4_1",
+        "title": "Thread 13",
+        "subtitle": "Debug thread 13",
+        "icon": "spr_icon_entertainment",
+        "pinned": false,
+        "conditions": {},
+        "posts": [
+          {
+            "id": "p_th_cat_4_1_0",
+            "type": "original",
+            "timestamp": 273,
+            "user_name": "UserZeta",
+            "user_rank": "Netrunner",
+            "avatar": "spr_avatar_assistant",
+            "body": "Original post for Thread 13.",
+            "conditions": {},
+            "options": [
+              {
+                "text": "Reply: Agree",
+                "set_flag": "FLAG_TH_CAT_4_1_AGREE"
+              },
+              {
+                "text": "Reply: Disagree",
+                "set_flag": "FLAG_TH_CAT_4_1_DISAGREE"
+              }
+            ]
+          },
+          {
+            "id": "p_th_cat_4_1_1",
+            "type": "reply",
+            "timestamp": 283,
+            "user_name": "UserMu",
+            "user_rank": "Grade A",
+            "avatar": "spr_avatar_system",
+            "body": "Reply 1 to Thread 13.",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_4_1_DISAGREE"
+            },
+            "quote_user": "UserAlpha",
+            "quote_text": "Original post"
+          },
+          {
+            "id": "p_th_cat_4_1_2",
+            "type": "reply",
+            "timestamp": 293,
+            "user_name": "UserEta",
+            "user_rank": "Grade C",
+            "avatar": "spr_avatar_evelyn",
+            "body": "Reply 2 to Thread 13.",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_4_1_AGREE"
+            },
+            "quote_user": "UserAlpha",
+            "quote_text": "Original post"
+          },
+          {
+            "id": "p_th_cat_4_1_3",
+            "type": "reply",
+            "timestamp": 303,
+            "user_name": "UserLambda",
+            "user_rank": "Moderator",
+            "avatar": "spr_avatar_cipher_2",
+            "body": "Reply 3 to Thread 13.",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_4_1_DISAGREE"
+            },
+            "quote_user": "UserAlpha",
+            "quote_text": "Original post"
+          }
+        ]
+      },
+      {
+        "id": "th_cat_4_2",
+        "title": "Thread 14",
+        "subtitle": "Debug thread 14",
+        "icon": "spr_icon_transport",
+        "pinned": false,
+        "conditions": {},
+        "posts": [
+          {
+            "id": "p_th_cat_4_2_0",
+            "type": "original",
+            "timestamp": 387,
+            "user_name": "UserAlpha",
+            "user_rank": "Grade D",
+            "avatar": "spr_avatar_thedoctor",
+            "body": "Original post for Thread 14.",
+            "conditions": {},
+            "options": [
+              {
+                "text": "Reply: Agree",
+                "set_flag": "FLAG_TH_CAT_4_2_AGREE"
+              },
+              {
+                "text": "Reply: Disagree",
+                "set_flag": "FLAG_TH_CAT_4_2_DISAGREE"
+              }
+            ]
+          },
+          {
+            "id": "p_th_cat_4_2_1",
+            "type": "reply",
+            "timestamp": 397,
+            "user_name": "UserDelta",
+            "user_rank": "Administrator",
+            "avatar": "spr_avatar_system",
+            "body": "Reply 1 to Thread 14.",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_4_2_DISAGREE"
+            },
+            "quote_user": "UserAlpha",
+            "quote_text": "Original post"
+          },
+          {
+            "id": "p_th_cat_4_2_2",
+            "type": "reply",
+            "timestamp": 407,
+            "user_name": "UserDelta",
+            "user_rank": "Grade B",
+            "avatar": "spr_avatar_cipher_2",
+            "body": "Reply 2 to Thread 14.",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_4_2_AGREE"
+            },
+            "quote_user": "UserAlpha",
+            "quote_text": "Original post"
+          },
+          {
+            "id": "p_th_cat_4_2_3",
+            "type": "reply",
+            "timestamp": 417,
+            "user_name": "UserEpsilon",
+            "user_rank": "Grade A",
+            "avatar": "spr_avatar_cipher_2",
+            "body": "Reply 3 to Thread 14.",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_4_2_DISAGREE"
+            },
+            "quote_user": "UserAlpha",
+            "quote_text": "Original post"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "cat_5",
+    "title": "Category 5",
+    "subtitle": "Test category 5",
+    "icon": "spr_icon_net",
+    "threads": [
+      {
+        "id": "th_cat_5_0",
+        "title": "Thread 15",
+        "subtitle": "Debug thread 15",
+        "icon": "spr_icon_politics",
+        "pinned": true,
+        "conditions": {},
+        "posts": [
+          {
+            "id": "p_th_cat_5_0_0",
+            "type": "original",
+            "timestamp": 652,
+            "user_name": "UserTheta",
+            "user_rank": "Grade D",
+            "avatar": "spr_avatar_narrator",
+            "body": "Original post for Thread 15.",
+            "conditions": {},
+            "options": [
+              {
+                "text": "Reply: Agree",
+                "set_flag": "FLAG_TH_CAT_5_0_AGREE"
+              },
+              {
+                "text": "Reply: Disagree",
+                "set_flag": "FLAG_TH_CAT_5_0_DISAGREE"
+              }
+            ]
+          },
+          {
+            "id": "p_th_cat_5_0_1",
+            "type": "reply",
+            "timestamp": 662,
+            "user_name": "UserOmicron",
+            "user_rank": "Administrator",
+            "avatar": "spr_avatar_thedoctor",
+            "body": "Reply 1 to Thread 15.",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_5_0_DISAGREE"
+            },
+            "quote_user": "UserAlpha",
+            "quote_text": "Original post"
+          },
+          {
+            "id": "p_th_cat_5_0_2",
+            "type": "reply",
+            "timestamp": 672,
+            "user_name": "UserTheta",
+            "user_rank": "Grade C",
+            "avatar": "spr_avatar_narrator",
+            "body": "Reply 2 to Thread 15.",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_5_0_AGREE"
+            },
+            "quote_user": "UserAlpha",
+            "quote_text": "Original post"
+          }
+        ]
+      },
+      {
+        "id": "th_cat_5_1",
+        "title": "Thread 16",
+        "subtitle": "Debug thread 16",
+        "icon": "spr_icon_genetics",
+        "pinned": false,
+        "conditions": {},
+        "posts": [
+          {
+            "id": "p_th_cat_5_1_0",
+            "type": "original",
+            "timestamp": 890,
+            "user_name": "UserMu",
+            "user_rank": "Grade D",
+            "avatar": "spr_avatar_assistant",
+            "body": "Original post for Thread 16.",
+            "conditions": {},
+            "options": [
+              {
+                "text": "Reply: Agree",
+                "set_flag": "FLAG_TH_CAT_5_1_AGREE"
+              },
+              {
+                "text": "Reply: Disagree",
+                "set_flag": "FLAG_TH_CAT_5_1_DISAGREE"
+              }
+            ]
+          },
+          {
+            "id": "p_th_cat_5_1_1",
+            "type": "reply",
+            "timestamp": 900,
+            "user_name": "UserZeta",
+            "user_rank": "Grade D",
+            "avatar": "spr_avatar_thedoctor",
+            "body": "Reply 1 to Thread 16.",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_5_1_DISAGREE"
+            },
+            "quote_user": "UserAlpha",
+            "quote_text": "Original post"
+          },
+          {
+            "id": "p_th_cat_5_1_2",
+            "type": "reply",
+            "timestamp": 910,
+            "user_name": "UserEta",
+            "user_rank": "Grade C",
+            "avatar": "spr_avatar_cipher_2",
+            "body": "Reply 2 to Thread 16.",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_5_1_AGREE"
+            },
+            "quote_user": "UserAlpha",
+            "quote_text": "Original post"
+          }
+        ]
+      },
+      {
+        "id": "th_cat_5_2",
+        "title": "Thread 17",
+        "subtitle": "Debug thread 17",
+        "icon": "spr_icon_augmentations",
+        "pinned": false,
+        "conditions": {},
+        "posts": [
+          {
+            "id": "p_th_cat_5_2_0",
+            "type": "original",
+            "timestamp": 543,
+            "user_name": "UserAlpha",
+            "user_rank": "Grade D",
+            "avatar": "spr_avatar_remy",
+            "body": "Original post for Thread 17.",
+            "conditions": {},
+            "options": [
+              {
+                "text": "Reply: Agree",
+                "set_flag": "FLAG_TH_CAT_5_2_AGREE"
+              },
+              {
+                "text": "Reply: Disagree",
+                "set_flag": "FLAG_TH_CAT_5_2_DISAGREE"
+              }
+            ]
+          },
+          {
+            "id": "p_th_cat_5_2_1",
+            "type": "reply",
+            "timestamp": 553,
+            "user_name": "UserEta",
+            "user_rank": "Grade D",
+            "avatar": "spr_avatar_narrator",
+            "body": "Reply 1 to Thread 17.",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_5_2_DISAGREE"
+            },
+            "quote_user": "UserAlpha",
+            "quote_text": "Original post"
+          },
+          {
+            "id": "p_th_cat_5_2_2",
+            "type": "reply",
+            "timestamp": 563,
+            "user_name": "UserZeta",
+            "user_rank": "Netrunner",
+            "avatar": "spr_avatar_evelyn",
+            "body": "Reply 2 to Thread 17.",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_5_2_AGREE"
+            },
+            "quote_user": "UserAlpha",
+            "quote_text": "Original post"
+          },
+          {
+            "id": "p_th_cat_5_2_3",
+            "type": "reply",
+            "timestamp": 573,
+            "user_name": "UserAlpha",
+            "user_rank": "Grade D",
+            "avatar": "spr_avatar_cipher_2",
+            "body": "Reply 3 to Thread 17.",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_5_2_DISAGREE"
+            },
+            "quote_user": "UserAlpha",
+            "quote_text": "Original post"
+          },
+          {
+            "id": "p_th_cat_5_2_4",
+            "type": "reply",
+            "timestamp": 583,
+            "user_name": "UserTheta",
+            "user_rank": "Moderator",
+            "avatar": "spr_avatar_assistant",
+            "body": "Reply 4 to Thread 17.",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_5_2_AGREE"
+            },
+            "quote_user": "UserAlpha",
+            "quote_text": "Original post"
+          },
+          {
+            "id": "p_th_cat_5_2_5",
+            "type": "reply",
+            "timestamp": 593,
+            "user_name": "UserTheta",
+            "user_rank": "Grade D",
+            "avatar": "spr_avatar_remy",
+            "body": "Reply 5 to Thread 17.",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_5_2_DISAGREE"
+            },
+            "quote_user": "UserAlpha",
+            "quote_text": "Original post"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "cat_6",
+    "title": "Category 6",
+    "subtitle": "Test category 6",
+    "icon": "spr_icon_ai",
+    "threads": [
+      {
+        "id": "th_cat_6_0",
+        "title": "Thread 18",
+        "subtitle": "Debug thread 18",
+        "icon": "spr_icon_enconomy",
+        "pinned": true,
+        "conditions": {},
+        "posts": [
+          {
+            "id": "p_th_cat_6_0_0",
+            "type": "original",
+            "timestamp": 294,
+            "user_name": "UserKappa",
+            "user_rank": "Netrunner",
+            "avatar": "spr_avatar_thedoctor",
+            "body": "Original post for Thread 18.",
+            "conditions": {},
+            "options": [
+              {
+                "text": "Reply: Agree",
+                "set_flag": "FLAG_TH_CAT_6_0_AGREE"
+              },
+              {
+                "text": "Reply: Disagree",
+                "set_flag": "FLAG_TH_CAT_6_0_DISAGREE"
+              }
+            ]
+          },
+          {
+            "id": "p_th_cat_6_0_1",
+            "type": "reply",
+            "timestamp": 304,
+            "user_name": "UserMu",
+            "user_rank": "Netrunner",
+            "avatar": "spr_avatar_engineer",
+            "body": "Reply 1 to Thread 18.",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_6_0_DISAGREE"
+            },
+            "quote_user": "UserAlpha",
+            "quote_text": "Original post"
+          },
+          {
+            "id": "p_th_cat_6_0_2",
+            "type": "reply",
+            "timestamp": 314,
+            "user_name": "UserOmicron",
+            "user_rank": "Grade C",
+            "avatar": "spr_avatar_thecleaner",
+            "body": "Reply 2 to Thread 18.",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_6_0_AGREE"
+            },
+            "quote_user": "UserAlpha",
+            "quote_text": "Original post"
+          }
+        ]
+      },
+      {
+        "id": "th_cat_6_1",
+        "title": "Thread 19",
+        "subtitle": "Debug thread 19",
+        "icon": "spr_icon_corp",
+        "pinned": false,
+        "conditions": {},
+        "posts": [
+          {
+            "id": "p_th_cat_6_1_0",
+            "type": "original",
+            "timestamp": 632,
+            "user_name": "UserTheta",
+            "user_rank": "Grade C",
+            "avatar": "spr_avatar_sparky",
+            "body": "Original post for Thread 19.",
+            "conditions": {},
+            "options": [
+              {
+                "text": "Reply: Agree",
+                "set_flag": "FLAG_TH_CAT_6_1_AGREE"
+              },
+              {
+                "text": "Reply: Disagree",
+                "set_flag": "FLAG_TH_CAT_6_1_DISAGREE"
+              }
+            ]
+          },
+          {
+            "id": "p_th_cat_6_1_1",
+            "type": "reply",
+            "timestamp": 642,
+            "user_name": "UserZeta",
+            "user_rank": "Grade D",
+            "avatar": "spr_avatar_ken",
+            "body": "Reply 1 to Thread 19.",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_6_1_DISAGREE"
+            },
+            "quote_user": "UserAlpha",
+            "quote_text": "Original post"
+          },
+          {
+            "id": "p_th_cat_6_1_2",
+            "type": "reply",
+            "timestamp": 652,
+            "user_name": "UserEpsilon",
+            "user_rank": "Grade A",
+            "avatar": "spr_avatar_cipher_2",
+            "body": "Reply 2 to Thread 19.",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_6_1_AGREE"
+            },
+            "quote_user": "UserAlpha",
+            "quote_text": "Original post"
+          }
+        ]
+      },
+      {
+        "id": "th_cat_6_2",
+        "title": "Thread 20",
+        "subtitle": "Debug thread 20",
+        "icon": "spr_icon_resistance",
+        "pinned": false,
+        "conditions": {},
+        "posts": [
+          {
+            "id": "p_th_cat_6_2_0",
+            "type": "original",
+            "timestamp": 222,
+            "user_name": "UserKappa",
+            "user_rank": "Grade A",
+            "avatar": "spr_avatar_narrator",
+            "body": "Original post for Thread 20.",
+            "conditions": {},
+            "options": [
+              {
+                "text": "Reply: Agree",
+                "set_flag": "FLAG_TH_CAT_6_2_AGREE"
+              },
+              {
+                "text": "Reply: Disagree",
+                "set_flag": "FLAG_TH_CAT_6_2_DISAGREE"
+              }
+            ]
+          },
+          {
+            "id": "p_th_cat_6_2_1",
+            "type": "reply",
+            "timestamp": 232,
+            "user_name": "UserIota",
+            "user_rank": "Grade B",
+            "avatar": "spr_avatar_assistant",
+            "body": "Reply 1 to Thread 20.",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_6_2_DISAGREE"
+            },
+            "quote_user": "UserAlpha",
+            "quote_text": "Original post"
+          },
+          {
+            "id": "p_th_cat_6_2_2",
+            "type": "reply",
+            "timestamp": 242,
+            "user_name": "UserKappa",
+            "user_rank": "Administrator",
+            "avatar": "spr_avatar_cipher_2",
+            "body": "Reply 2 to Thread 20.",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_6_2_AGREE"
+            },
+            "quote_user": "UserAlpha",
+            "quote_text": "Original post"
+          }
+        ]
+      }
+    ]
+  }
+]

@@ -1,0 +1,1116 @@
+[
+  {
+    "id": "cat_1",
+    "title": "Category 1 - General Systems",
+    "subtitle": "Baseline day and flag behaviour",
+    "icon": "spr_icon_tech",
+    "threads": [
+      {
+        "id": "th_cat_1_0",
+        "title": "Thread 1 - Basic Day Gating",
+        "subtitle": "Original + neutral + replies + follow-up",
+        "icon": "spr_icon_data",
+        "pinned": true,
+        "conditions": {},
+        "posts": [
+          {
+            "id": "p_th_cat_1_0_0",
+            "type": "original",
+            "timestamp": 100,
+            "user_name": "UserAlpha",
+            "user_rank": "Grade C",
+            "avatar": "spr_avatar_jax",
+            "body": "Original post for Thread 1. Day-gated and with reply options.",
+            "conditions": {
+              "min_day": 1
+            },
+            "options": [
+              {
+                "text": "Reply: Agree with Thread 1",
+                "set_flag": "FLAG_TH_CAT_1_0_AGREE"
+              },
+              {
+                "text": "Reply: Disagree with Thread 1",
+                "set_flag": "FLAG_TH_CAT_1_0_DISAGREE"
+              }
+            ]
+          },
+          {
+            "id": "p_th_cat_1_0_1",
+            "type": "reply",
+            "timestamp": 110,
+            "user_name": "UserBeta",
+            "user_rank": "Grade D",
+            "avatar": "spr_avatar_assistant",
+            "body": "Neutral system comment in Thread 1 before any user reply.",
+            "conditions": {
+              "min_day": 2
+            }
+          },
+          {
+            "id": "p_th_cat_1_0_2",
+            "type": "reply",
+            "timestamp": 120,
+            "user_name": "Player",
+            "user_rank": "Grade C",
+            "avatar": "spr_avatar_ken",
+            "body": "Player reply 1 to Thread 1 (Agree path).",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_1_0_AGREE"
+            },
+            "quote_user": "UserAlpha",
+            "quote_text": "Original post for Thread 1. Day-gated and with reply options."
+          },
+          {
+            "id": "p_th_cat_1_0_3",
+            "type": "reply",
+            "timestamp": 130,
+            "user_name": "Player",
+            "user_rank": "Grade C",
+            "avatar": "spr_avatar_anya",
+            "body": "Player reply 2 to Thread 1 (Disagree path).",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_1_0_DISAGREE"
+            },
+            "quote_user": "UserAlpha",
+            "quote_text": "Original post for Thread 1. Day-gated and with reply options."
+          },
+          {
+            "id": "p_th_cat_1_0_4",
+            "type": "reply",
+            "timestamp": 140,
+            "user_name": "UserGamma",
+            "user_rank": "Moderator",
+            "avatar": "spr_avatar_system",
+            "body": "Follow-up after replies in Thread 1 (Agree branch).",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_1_0_AGREE",
+              "min_day": 3
+            }
+          }
+        ]
+      },
+      {
+        "id": "th_cat_1_1",
+        "title": "Thread 2 - No Options Neutral Flow",
+        "subtitle": "Neutral posts only, no player replies",
+        "icon": "spr_icon_lifestyle",
+        "pinned": false,
+        "conditions": {},
+        "posts": [
+          {
+            "id": "p_th_cat_1_1_0",
+            "type": "original",
+            "timestamp": 200,
+            "user_name": "UserDelta",
+            "user_rank": "Grade B",
+            "avatar": "spr_avatar_evelyn",
+            "body": "Original post for Thread 2. No reply options.",
+            "conditions": {
+              "min_day": 1
+            }
+          },
+          {
+            "id": "p_th_cat_1_1_1",
+            "type": "reply",
+            "timestamp": 210,
+            "user_name": "UserEpsilon",
+            "user_rank": "Grade C",
+            "avatar": "spr_avatar_engineer",
+            "body": "Neutral follow-up in Thread 2, still no player reply options.",
+            "conditions": {
+              "min_day": 2
+            }
+          },
+          {
+            "id": "p_th_cat_1_1_2",
+            "type": "reply",
+            "timestamp": 220,
+            "user_name": "UserZeta",
+            "user_rank": "Grade B",
+            "avatar": "spr_avatar_sparky",
+            "body": "Later neutral post in Thread 2.",
+            "conditions": {
+              "min_day": 4
+            }
+          }
+        ]
+      },
+      {
+        "id": "th_cat_1_2",
+        "title": "Thread 3 - Simple Branch",
+        "subtitle": "Pre-reply, reply, and post-reply",
+        "icon": "spr_icon_health",
+        "pinned": false,
+        "conditions": {},
+        "posts": [
+          {
+            "id": "p_th_cat_1_2_0",
+            "type": "original",
+            "timestamp": 300,
+            "user_name": "UserEta",
+            "user_rank": "Grade C",
+            "avatar": "spr_avatar_remy",
+            "body": "Original post for Thread 3 with reply options.",
+            "conditions": {
+              "min_day": 2
+            },
+            "options": [
+              {
+                "text": "Reply: Support Thread 3",
+                "set_flag": "FLAG_TH_CAT_1_2_SUPPORT"
+              },
+              {
+                "text": "Reply: Oppose Thread 3",
+                "set_flag": "FLAG_TH_CAT_1_2_OPPOSE"
+              }
+            ]
+          },
+          {
+            "id": "p_th_cat_1_2_1",
+            "type": "reply",
+            "timestamp": 310,
+            "user_name": "UserTheta",
+            "user_rank": "Grade D",
+            "avatar": "spr_avatar_assistant",
+            "body": "Neutral commentary in Thread 3 before any player reply.",
+            "conditions": {
+              "min_day": 3
+            }
+          },
+          {
+            "id": "p_th_cat_1_2_2",
+            "type": "reply",
+            "timestamp": 320,
+            "user_name": "Player",
+            "user_rank": "Grade C",
+            "avatar": "spr_avatar_ken",
+            "body": "Player reply to Thread 3 (Support).",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_1_2_SUPPORT"
+            },
+            "quote_user": "UserEta",
+            "quote_text": "Original post for Thread 3 with reply options."
+          },
+          {
+            "id": "p_th_cat_1_2_3",
+            "type": "reply",
+            "timestamp": 330,
+            "user_name": "Player",
+            "user_rank": "Grade C",
+            "avatar": "spr_avatar_anya",
+            "body": "Player reply to Thread 3 (Oppose).",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_1_2_OPPOSE"
+            },
+            "quote_user": "UserEta",
+            "quote_text": "Original post for Thread 3 with reply options."
+          },
+          {
+            "id": "p_th_cat_1_2_4",
+            "type": "reply",
+            "timestamp": 340,
+            "user_name": "UserIota",
+            "user_rank": "Moderator",
+            "avatar": "spr_avatar_system",
+            "body": "Follow-up after replies in Thread 3 (Support branch).",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_1_2_SUPPORT",
+              "min_day": 4
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "cat_2",
+    "title": "Category 2 - Hardware & Implants",
+    "subtitle": "More complex branching and days",
+    "icon": "spr_icon_hardware",
+    "threads": [
+      {
+        "id": "th_cat_2_0",
+        "title": "Thread 4 - Implant Malfunction",
+        "subtitle": "Day-gated troubleshooting",
+        "icon": "spr_icon_augmentations",
+        "pinned": true,
+        "conditions": {},
+        "posts": [
+          {
+            "id": "p_th_cat_2_0_0",
+            "type": "original",
+            "timestamp": 100,
+            "user_name": "UserLambda",
+            "user_rank": "Grade B",
+            "avatar": "spr_avatar_engineer",
+            "body": "Original post for Thread 4 about implant malfunction.",
+            "conditions": {
+              "min_day": 1
+            },
+            "options": [
+              {
+                "text": "Reply: Suggest recalibration",
+                "set_flag": "FLAG_TH_CAT_2_0_RECAL"
+              },
+              {
+                "text": "Reply: Suggest replacement",
+                "set_flag": "FLAG_TH_CAT_2_0_REPLACE"
+              }
+            ]
+          },
+          {
+            "id": "p_th_cat_2_0_1",
+            "type": "reply",
+            "timestamp": 110,
+            "user_name": "UserMu",
+            "user_rank": "Grade C",
+            "avatar": "spr_avatar_evelyn",
+            "body": "Neutral diagnostic comment before any player reply.",
+            "conditions": {
+              "min_day": 2
+            }
+          },
+          {
+            "id": "p_th_cat_2_0_2",
+            "type": "reply",
+            "timestamp": 120,
+            "user_name": "Player",
+            "user_rank": "Grade C",
+            "avatar": "spr_avatar_jax",
+            "body": "Player suggests recalibration.",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_2_0_RECAL"
+            },
+            "quote_user": "UserLambda",
+            "quote_text": "Original post for Thread 4 about implant malfunction."
+          },
+          {
+            "id": "p_th_cat_2_0_3",
+            "type": "reply",
+            "timestamp": 130,
+            "user_name": "Player",
+            "user_rank": "Grade C",
+            "avatar": "spr_avatar_ken",
+            "body": "Player suggests replacement.",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_2_0_REPLACE"
+            },
+            "quote_user": "UserLambda",
+            "quote_text": "Original post for Thread 4 about implant malfunction."
+          },
+          {
+            "id": "p_th_cat_2_0_4",
+            "type": "reply",
+            "timestamp": 140,
+            "user_name": "UserNu",
+            "user_rank": "Moderator",
+            "avatar": "spr_avatar_system",
+            "body": "Follow-up after recalibration suggestion.",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_2_0_RECAL",
+              "min_day": 3
+            }
+          }
+        ]
+      },
+      {
+        "id": "th_cat_2_1",
+        "title": "Thread 5 - Hardware Wishlist",
+        "subtitle": "No reply options, just chatter",
+        "icon": "spr_icon_finance",
+        "pinned": false,
+        "conditions": {},
+        "posts": [
+          {
+            "id": "p_th_cat_2_1_0",
+            "type": "original",
+            "timestamp": 200,
+            "user_name": "UserXi",
+            "user_rank": "Grade D",
+            "avatar": "spr_avatar_anya",
+            "body": "Original post for Thread 5 listing hardware wishlist.",
+            "conditions": {
+              "min_day": 1
+            }
+          },
+          {
+            "id": "p_th_cat_2_1_1",
+            "type": "reply",
+            "timestamp": 210,
+            "user_name": "UserOmicron",
+            "user_rank": "Grade C",
+            "avatar": "spr_avatar_remy",
+            "body": "Neutral comment about prices in Thread 5.",
+            "conditions": {
+              "min_day": 2
+            }
+          },
+          {
+            "id": "p_th_cat_2_1_2",
+            "type": "reply",
+            "timestamp": 220,
+            "user_name": "UserPi",
+            "user_rank": "Grade B",
+            "avatar": "spr_avatar_sparky",
+            "body": "Another neutral comment in Thread 5.",
+            "conditions": {
+              "min_day": 3
+            }
+          }
+        ]
+      },
+      {
+        "id": "th_cat_2_2",
+        "title": "Thread 6 - Firmware Update Debate",
+        "subtitle": "Branching with post-reply follow-ups",
+        "icon": "spr_icon_ai",
+        "pinned": false,
+        "conditions": {},
+        "posts": [
+          {
+            "id": "p_th_cat_2_2_0",
+            "type": "original",
+            "timestamp": 300,
+            "user_name": "UserRho",
+            "user_rank": "Grade C",
+            "avatar": "spr_avatar_cipher_2",
+            "body": "Original post for Thread 6 about firmware updates.",
+            "conditions": {
+              "min_day": 2
+            },
+            "options": [
+              {
+                "text": "Reply: Approve update",
+                "set_flag": "FLAG_TH_CAT_2_2_APPROVE"
+              },
+              {
+                "text": "Reply: Reject update",
+                "set_flag": "FLAG_TH_CAT_2_2_REJECT"
+              }
+            ]
+          },
+          {
+            "id": "p_th_cat_2_2_1",
+            "type": "reply",
+            "timestamp": 310,
+            "user_name": "UserSigma",
+            "user_rank": "Grade D",
+            "avatar": "spr_avatar_assistant",
+            "body": "Neutral technical note before player replies.",
+            "conditions": {
+              "min_day": 3
+            }
+          },
+          {
+            "id": "p_th_cat_2_2_2",
+            "type": "reply",
+            "timestamp": 320,
+            "user_name": "Player",
+            "user_rank": "Grade C",
+            "avatar": "spr_avatar_jax",
+            "body": "Player approves the firmware update.",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_2_2_APPROVE"
+            },
+            "quote_user": "UserRho",
+            "quote_text": "Original post for Thread 6 about firmware updates."
+          },
+          {
+            "id": "p_th_cat_2_2_3",
+            "type": "reply",
+            "timestamp": 330,
+            "user_name": "Player",
+            "user_rank": "Grade C",
+            "avatar": "spr_avatar_ken",
+            "body": "Player rejects the firmware update.",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_2_2_REJECT"
+            },
+            "quote_user": "UserRho",
+            "quote_text": "Original post for Thread 6 about firmware updates."
+          },
+          {
+            "id": "p_th_cat_2_2_4",
+            "type": "reply",
+            "timestamp": 340,
+            "user_name": "UserTau",
+            "user_rank": "Moderator",
+            "avatar": "spr_avatar_system",
+            "body": "Follow-up after approval branch in Thread 6.",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_2_2_APPROVE",
+              "min_day": 4
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "cat_3",
+    "title": "Category 3 - City News",
+    "subtitle": "Day-based events and branching",
+    "icon": "spr_icon_politics",
+    "threads": [
+      {
+        "id": "th_cat_3_0",
+        "title": "Thread 7 - Power Outage",
+        "subtitle": "Event with day progression",
+        "icon": "spr_icon_environment",
+        "pinned": true,
+        "conditions": {},
+        "posts": [
+          {
+            "id": "p_th_cat_3_0_0",
+            "type": "original",
+            "timestamp": 100,
+            "user_name": "GridWatch",
+            "user_rank": "Official",
+            "avatar": "spr_avatar_system",
+            "body": "Original post for Thread 7 about a power outage.",
+            "conditions": {
+              "min_day": 1
+            },
+            "options": [
+              {
+                "text": "Reply: Report outage",
+                "set_flag": "FLAG_TH_CAT_3_0_REPORT"
+              },
+              {
+                "text": "Reply: Ignore outage",
+                "set_flag": "FLAG_TH_CAT_3_0_IGNORE"
+              }
+            ]
+          },
+          {
+            "id": "p_th_cat_3_0_1",
+            "type": "reply",
+            "timestamp": 110,
+            "user_name": "Citizen_101",
+            "user_rank": "Grade D",
+            "avatar": "spr_avatar_anya",
+            "body": "Neutral citizen comment before player reply.",
+            "conditions": {
+              "min_day": 2
+            }
+          },
+          {
+            "id": "p_th_cat_3_0_2",
+            "type": "reply",
+            "timestamp": 120,
+            "user_name": "Player",
+            "user_rank": "Grade C",
+            "avatar": "spr_avatar_jax",
+            "body": "Player reports the outage.",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_3_0_REPORT"
+            },
+            "quote_user": "GridWatch",
+            "quote_text": "Original post for Thread 7 about a power outage."
+          },
+          {
+            "id": "p_th_cat_3_0_3",
+            "type": "reply",
+            "timestamp": 130,
+            "user_name": "Player",
+            "user_rank": "Grade C",
+            "avatar": "spr_avatar_ken",
+            "body": "Player ignores the outage.",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_3_0_IGNORE"
+            },
+            "quote_user": "GridWatch",
+            "quote_text": "Original post for Thread 7 about a power outage."
+          },
+          {
+            "id": "p_th_cat_3_0_4",
+            "type": "reply",
+            "timestamp": 140,
+            "user_name": "GridWatch",
+            "user_rank": "Official",
+            "avatar": "spr_avatar_system",
+            "body": "Follow-up after report branch in Thread 7.",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_3_0_REPORT",
+              "min_day": 3
+            }
+          }
+        ]
+      },
+      {
+        "id": "th_cat_3_1",
+        "title": "Thread 8 - Strange Lights",
+        "subtitle": "No reply options, just rumours",
+        "icon": "spr_icon_entertainment",
+        "pinned": false,
+        "conditions": {},
+        "posts": [
+          {
+            "id": "p_th_cat_3_1_0",
+            "type": "original",
+            "timestamp": 200,
+            "user_name": "Citizen_202",
+            "user_rank": "Grade D",
+            "avatar": "spr_avatar_evelyn",
+            "body": "Original post for Thread 8 about strange lights.",
+            "conditions": {
+              "min_day": 2
+            }
+          },
+          {
+            "id": "p_th_cat_3_1_1",
+            "type": "reply",
+            "timestamp": 210,
+            "user_name": "Citizen_303",
+            "user_rank": "Grade C",
+            "avatar": "spr_avatar_remy",
+            "body": "Neutral rumour follow-up in Thread 8.",
+            "conditions": {
+              "min_day": 3
+            }
+          },
+          {
+            "id": "p_th_cat_3_1_2",
+            "type": "reply",
+            "timestamp": 220,
+            "user_name": "Citizen_404",
+            "user_rank": "Grade C",
+            "avatar": "spr_avatar_sparky",
+            "body": "Another neutral rumour in Thread 8.",
+            "conditions": {
+              "min_day": 4
+            }
+          }
+        ]
+      },
+      {
+        "id": "th_cat_3_2",
+        "title": "Thread 9 - Curfew Debate",
+        "subtitle": "Branching with post-reply follow-ups",
+        "icon": "spr_icon_lawandorder",
+        "pinned": false,
+        "conditions": {},
+        "posts": [
+          {
+            "id": "p_th_cat_3_2_0",
+            "type": "original",
+            "timestamp": 300,
+            "user_name": "CouncilRep",
+            "user_rank": "Official",
+            "avatar": "spr_avatar_system",
+            "body": "Original post for Thread 9 about curfew.",
+            "conditions": {
+              "min_day": 3
+            },
+            "options": [
+              {
+                "text": "Reply: Support curfew",
+                "set_flag": "FLAG_TH_CAT_3_2_SUPPORT"
+              },
+              {
+                "text": "Reply: Oppose curfew",
+                "set_flag": "FLAG_TH_CAT_3_2_OPPOSE"
+              }
+            ]
+          },
+          {
+            "id": "p_th_cat_3_2_1",
+            "type": "reply",
+            "timestamp": 310,
+            "user_name": "Citizen_505",
+            "user_rank": "Grade D",
+            "avatar": "spr_avatar_anya",
+            "body": "Neutral comment before player reply in Thread 9.",
+            "conditions": {
+              "min_day": 4
+            }
+          },
+          {
+            "id": "p_th_cat_3_2_2",
+            "type": "reply",
+            "timestamp": 320,
+            "user_name": "Player",
+            "user_rank": "Grade C",
+            "avatar": "spr_avatar_jax",
+            "body": "Player supports the curfew.",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_3_2_SUPPORT"
+            },
+            "quote_user": "CouncilRep",
+            "quote_text": "Original post for Thread 9 about curfew."
+          },
+          {
+            "id": "p_th_cat_3_2_3",
+            "type": "reply",
+            "timestamp": 330,
+            "user_name": "Player",
+            "user_rank": "Grade C",
+            "avatar": "spr_avatar_ken",
+            "body": "Player opposes the curfew.",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_3_2_OPPOSE"
+            },
+            "quote_user": "CouncilRep",
+            "quote_text": "Original post for Thread 9 about curfew."
+          },
+          {
+            "id": "p_th_cat_3_2_4",
+            "type": "reply",
+            "timestamp": 340,
+            "user_name": "CouncilRep",
+            "user_rank": "Official",
+            "avatar": "spr_avatar_system",
+            "body": "Follow-up after support branch in Thread 9.",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_3_2_SUPPORT",
+              "min_day": 5
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "cat_4",
+    "title": "Category 4 - Science & Research",
+    "subtitle": "Normal logic, no intentional errors",
+    "icon": "spr_icon_genetics",
+    "threads": [
+      {
+        "id": "th_cat_4_0",
+        "title": "Thread 10 - Lab Anomaly",
+        "subtitle": "Day-gated anomaly discussion",
+        "icon": "spr_icon_health",
+        "pinned": true,
+        "conditions": {},
+        "posts": [
+          {
+            "id": "p_th_cat_4_0_0",
+            "type": "original",
+            "timestamp": 100,
+            "user_name": "TheDoctor",
+            "user_rank": "Bio-Specialist",
+            "avatar": "spr_avatar_thedoctor",
+            "body": "Original post for Thread 10 about a lab anomaly.",
+            "conditions": {
+              "min_day": 2
+            },
+            "options": [
+              {
+                "text": "Reply: Treat as harmless",
+                "set_flag": "FLAG_TH_CAT_4_0_HARMLESS"
+              },
+              {
+                "text": "Reply: Treat as dangerous",
+                "set_flag": "FLAG_TH_CAT_4_0_DANGEROUS"
+              }
+            ]
+          },
+          {
+            "id": "p_th_cat_4_0_1",
+            "type": "reply",
+            "timestamp": 110,
+            "user_name": "Researcher_1",
+            "user_rank": "Grade C",
+            "avatar": "spr_avatar_engineer",
+            "body": "Neutral observation before player reply in Thread 10.",
+            "conditions": {
+              "min_day": 3
+            }
+          },
+          {
+            "id": "p_th_cat_4_0_2",
+            "type": "reply",
+            "timestamp": 120,
+            "user_name": "Player",
+            "user_rank": "Grade C",
+            "avatar": "spr_avatar_jax",
+            "body": "Player treats anomaly as harmless.",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_4_0_HARMLESS"
+            },
+            "quote_user": "TheDoctor",
+            "quote_text": "Original post for Thread 10 about a lab anomaly."
+          },
+          {
+            "id": "p_th_cat_4_0_3",
+            "type": "reply",
+            "timestamp": 130,
+            "user_name": "Player",
+            "user_rank": "Grade C",
+            "avatar": "spr_avatar_ken",
+            "body": "Player treats anomaly as dangerous.",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_4_0_DANGEROUS"
+            },
+            "quote_user": "TheDoctor",
+            "quote_text": "Original post for Thread 10 about a lab anomaly."
+          },
+          {
+            "id": "p_th_cat_4_0_4",
+            "type": "reply",
+            "timestamp": 140,
+            "user_name": "TheDoctor",
+            "user_rank": "Bio-Specialist",
+            "avatar": "spr_avatar_thedoctor",
+            "body": "Follow-up after harmless branch in Thread 10.",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_4_0_HARMLESS",
+              "min_day": 4
+            }
+          }
+        ]
+      },
+      {
+        "id": "th_cat_4_1",
+        "title": "Thread 11 - Energy Source",
+        "subtitle": "No reply options, just logs",
+        "icon": "spr_icon_environment",
+        "pinned": false,
+        "conditions": {},
+        "posts": [
+          {
+            "id": "p_th_cat_4_1_0",
+            "type": "original",
+            "timestamp": 200,
+            "user_name": "Researcher_2",
+            "user_rank": "Grade B",
+            "avatar": "spr_avatar_evelyn",
+            "body": "Original post for Thread 11 about a new energy source.",
+            "conditions": {
+              "min_day": 3
+            }
+          },
+          {
+            "id": "p_th_cat_4_1_1",
+            "type": "reply",
+            "timestamp": 210,
+            "user_name": "Researcher_3",
+            "user_rank": "Grade C",
+            "avatar": "spr_avatar_remy",
+            "body": "Neutral log entry in Thread 11.",
+            "conditions": {
+              "min_day": 4
+            }
+          },
+          {
+            "id": "p_th_cat_4_1_2",
+            "type": "reply",
+            "timestamp": 220,
+            "user_name": "Researcher_4",
+            "user_rank": "Grade C",
+            "avatar": "spr_avatar_sparky",
+            "body": "Another neutral log entry in Thread 11.",
+            "conditions": {
+              "min_day": 5
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "cat_5",
+    "title": "Category 5 - Underworld (Error Cases)",
+    "subtitle": "Intentional logical errors for testing",
+    "icon": "spr_icon_underworld",
+    "threads": [
+      {
+        "id": "th_cat_5_0",
+        "title": "Thread 12 - Circular Flag Loop",
+        "subtitle": "Intentional circular requires_flag",
+        "icon": "spr_icon_crime",
+        "pinned": false,
+        "conditions": {},
+        "posts": [
+          {
+            "id": "p_th_cat_5_0_0",
+            "type": "original",
+            "timestamp": 100,
+            "user_name": "Null_Pointer",
+            "user_rank": "Netrunner",
+            "avatar": "spr_avatar_cipher_2",
+            "body": "Original post for Thread 12 with circular flag logic.",
+            "conditions": {
+              "min_day": 1
+            },
+            "options": [
+              {
+                "text": "Reply: Trigger A",
+                "set_flag": "FLAG_TH_CAT_5_0_A"
+              }
+            ]
+          },
+          {
+            "id": "p_th_cat_5_0_1",
+            "type": "reply",
+            "timestamp": 110,
+            "user_name": "UserShadow",
+            "user_rank": "Grade C",
+            "avatar": "spr_avatar_thecleaner",
+            "body": "Reply that requires FLAG_TH_CAT_5_0_B (not set yet).",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_5_0_B"
+            },
+            "quote_user": "Null_Pointer",
+            "quote_text": "Original post for Thread 12 with circular flag logic."
+          },
+          {
+            "id": "p_th_cat_5_0_2",
+            "type": "reply",
+            "timestamp": 120,
+            "user_name": "UserGhost",
+            "user_rank": "Grade C",
+            "avatar": "spr_avatar_ken",
+            "body": "Reply that requires FLAG_TH_CAT_5_0_A but sets FLAG_TH_CAT_5_0_B implicitly in narrative.",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_5_0_A"
+            },
+            "quote_user": "Null_Pointer",
+            "quote_text": "Original post for Thread 12 with circular flag logic."
+          },
+          {
+            "id": "p_th_cat_5_0_3",
+            "type": "reply",
+            "timestamp": 130,
+            "user_name": "UserLoop",
+            "user_rank": "Grade B",
+            "avatar": "spr_avatar_assistant",
+            "body": "Reply that requires FLAG_TH_CAT_5_0_A and FLAG_TH_CAT_5_0_B, forming a circular dependency.",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_5_0_A_AND_B"
+            }
+          }
+        ]
+      },
+      {
+        "id": "th_cat_5_1",
+        "title": "Thread 13 - Unreachable Post",
+        "subtitle": "Requires flag never set",
+        "icon": "spr_icon_net",
+        "pinned": false,
+        "conditions": {},
+        "posts": [
+          {
+            "id": "p_th_cat_5_1_0",
+            "type": "original",
+            "timestamp": 200,
+            "user_name": "UserHidden",
+            "user_rank": "Grade C",
+            "avatar": "spr_avatar_anya",
+            "body": "Original post for Thread 13 with unreachable reply.",
+            "conditions": {
+              "min_day": 2
+            },
+            "options": [
+              {
+                "text": "Reply: Normal path",
+                "set_flag": "FLAG_TH_CAT_5_1_NORMAL"
+              }
+            ]
+          },
+          {
+            "id": "p_th_cat_5_1_1",
+            "type": "reply",
+            "timestamp": 210,
+            "user_name": "Player",
+            "user_rank": "Grade C",
+            "avatar": "spr_avatar_jax",
+            "body": "Reachable reply using normal flag.",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_5_1_NORMAL"
+            },
+            "quote_user": "UserHidden",
+            "quote_text": "Original post for Thread 13 with unreachable reply."
+          },
+          {
+            "id": "p_th_cat_5_1_2",
+            "type": "reply",
+            "timestamp": 220,
+            "user_name": "UserUnseen",
+            "user_rank": "Grade B",
+            "avatar": "spr_avatar_remy",
+            "body": "Unreachable reply requiring a flag that is never set.",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_5_1_NEVER_SET"
+            }
+          }
+        ]
+      },
+      {
+        "id": "th_cat_5_2",
+        "title": "Thread 14 - Broken Day Logic",
+        "subtitle": "min_day higher than any realistic day",
+        "icon": "spr_icon_crime",
+        "pinned": false,
+        "conditions": {},
+        "posts": [
+          {
+            "id": "p_th_cat_5_2_0",
+            "type": "original",
+            "timestamp": 300,
+            "user_name": "UserEdge",
+            "user_rank": "Grade C",
+            "avatar": "spr_avatar_evelyn",
+            "body": "Original post for Thread 14 with extreme min_day.",
+            "conditions": {
+              "min_day": 9999
+            }
+          },
+          {
+            "id": "p_th_cat_5_2_1",
+            "type": "reply",
+            "timestamp": 310,
+            "user_name": "UserEdge2",
+            "user_rank": "Grade C",
+            "avatar": "spr_avatar_sparky",
+            "body": "Reply that is effectively unreachable due to min_day.",
+            "conditions": {
+              "min_day": 10000
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "cat_6",
+    "title": "Category 6 - Resistance (Error Cases)",
+    "subtitle": "More intentional logical errors",
+    "icon": "spr_icon_resistance",
+    "threads": [
+      {
+        "id": "th_cat_6_0",
+        "title": "Thread 15 - Circular Requires Between Posts",
+        "subtitle": "Two posts requiring each other's flags",
+        "icon": "spr_icon_politics",
+        "pinned": false,
+        "conditions": {},
+        "posts": [
+          {
+            "id": "p_th_cat_6_0_0",
+            "type": "original",
+            "timestamp": 100,
+            "user_name": "UserRebel",
+            "user_rank": "Grade C",
+            "avatar": "spr_avatar_anya",
+            "body": "Original post for Thread 15 with circular requires between replies.",
+            "conditions": {
+              "min_day": 1
+            },
+            "options": [
+              {
+                "text": "Reply: Take path X",
+                "set_flag": "FLAG_TH_CAT_6_0_X"
+              }
+            ]
+          },
+          {
+            "id": "p_th_cat_6_0_1",
+            "type": "reply",
+            "timestamp": 110,
+            "user_name": "UserRebel2",
+            "user_rank": "Grade C",
+            "avatar": "spr_avatar_jax",
+            "body": "Reply A requiring FLAG_TH_CAT_6_0_B.",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_6_0_B"
+            },
+            "quote_user": "UserRebel",
+            "quote_text": "Original post for Thread 15 with circular requires between replies."
+          },
+          {
+            "id": "p_th_cat_6_0_2",
+            "type": "reply",
+            "timestamp": 120,
+            "user_name": "UserRebel3",
+            "user_rank": "Grade C",
+            "avatar": "spr_avatar_ken",
+            "body": "Reply B requiring FLAG_TH_CAT_6_0_A.",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_6_0_A"
+            },
+            "quote_user": "UserRebel",
+            "quote_text": "Original post for Thread 15 with circular requires between replies."
+          }
+        ]
+      },
+      {
+        "id": "th_cat_6_1",
+        "title": "Thread 16 - Flag Never Set But Required",
+        "subtitle": "Classic unreachable branch",
+        "icon": "spr_icon_security",
+        "pinned": false,
+        "conditions": {},
+        "posts": [
+          {
+            "id": "p_th_cat_6_1_0",
+            "type": "original",
+            "timestamp": 200,
+            "user_name": "UserWatcher",
+            "user_rank": "Grade C",
+            "avatar": "spr_avatar_remy",
+            "body": "Original post for Thread 16 with missing flag set.",
+            "conditions": {
+              "min_day": 2
+            }
+          },
+          {
+            "id": "p_th_cat_6_1_1",
+            "type": "reply",
+            "timestamp": 210,
+            "user_name": "UserWatcher2",
+            "user_rank": "Grade C",
+            "avatar": "spr_avatar_sparky",
+            "body": "Reply requiring a flag that is never set.",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_6_1_MISSING"
+            }
+          }
+        ]
+      },
+      {
+        "id": "th_cat_6_2",
+        "title": "Thread 17 - Conflicting Conditions",
+        "subtitle": "Requires flag and impossible min_day",
+        "icon": "spr_icon_military",
+        "pinned": false,
+        "conditions": {},
+        "posts": [
+          {
+            "id": "p_th_cat_6_2_0",
+            "type": "original",
+            "timestamp": 300,
+            "user_name": "UserConflict",
+            "user_rank": "Grade C",
+            "avatar": "spr_avatar_evelyn",
+            "body": "Original post for Thread 17 with conflicting conditions.",
+            "conditions": {
+              "min_day": 1
+            },
+            "options": [
+              {
+                "text": "Reply: Trigger conflict flag",
+                "set_flag": "FLAG_TH_CAT_6_2_CONFLICT"
+              }
+            ]
+          },
+          {
+            "id": "p_th_cat_6_2_1",
+            "type": "reply",
+            "timestamp": 310,
+            "user_name": "UserConflict2",
+            "user_rank": "Grade C",
+            "avatar": "spr_avatar_jax",
+            "body": "Reply requiring conflict flag but impossible min_day.",
+            "conditions": {
+              "requires_flag": "FLAG_TH_CAT_6_2_CONFLICT",
+              "min_day": 9999
+            }
+          }
+        ]
+      }
+    ]
+  }
+]

@@ -2742,8 +2742,22 @@
             const [bulkFindValue, setBulkFindValue] = useState('');
             const [bulkReplaceValue, setBulkReplaceValue] = useState('');
             const [bulkPreview, setBulkPreview] = useState(null);
+            const [uploadedAssets, setUploadedAssets] = useState({});
+            const [selectedAsset, setSelectedAsset] = useState(null);
             const flags = getAllFlags();
             const users = getAllUsers();
+
+            // Load uploaded assets from localStorage on mount
+            useEffect(() => {
+                try {
+                    const saved = localStorage.getItem('narrative-editor-assets');
+                    if (saved) {
+                        setUploadedAssets(JSON.parse(saved));
+                    }
+                } catch (err) {
+                    console.error('Failed to load assets:', err);
+                }
+            }, []);
 
             const handleRunValidation = () => {
                 const issues = runValidation();
@@ -2799,7 +2813,289 @@
                         >
                             ✏️ Bulk Edit
                         </button>
+                        <button 
+                            onClick={() => setActiveTab('assetbrowser')} 
+                            className={activeTab === 'assetbrowser' ? '' : 'secondary'}
+                        >
+                            🎨 Asset Browser
+                        </button>
                     </div>
+
+                    {activeTab === 'assetbrowser' && (
+                        <div>
+                            <h3 style={{marginBottom: '16px', color: '#4ec9b0'}}>Asset Browser</h3>
+                            <p style={{color: '#858585', marginBottom: '20px', fontSize: '14px'}}>
+                                Visual gallery of all avatars and icons used in your narrative. Click to copy the sprite name.
+                            </p>
+
+                            {(() => {
+                                // Collect all unique avatars and icons
+                                const avatars = new Set();
+                                const icons = new Set();
+                                
+                                data.forEach(cat => {
+                                    if (cat.icon) icons.add(cat.icon);
+                                    cat.threads.forEach(thread => {
+                                        if (thread.icon) icons.add(thread.icon);
+                                        thread.posts.forEach(post => {
+                                            if (post.avatar) avatars.add(post.avatar);
+                                        });
+                                    });
+                                });
+
+                                const handleImageUpload = (assetName, file) => {
+                                    const reader = new FileReader();
+                                    reader.onload = (e) => {
+                                        setUploadedAssets(prev => ({
+                                            ...prev,
+                                            [assetName]: e.target.result
+                                        }));
+                                        // Save to localStorage
+                                        try {
+                                            const saved = JSON.parse(localStorage.getItem('narrative-editor-assets') || '{}');
+                                            saved[assetName] = e.target.result;
+                                            localStorage.setItem('narrative-editor-assets', JSON.stringify(saved));
+                                        } catch (err) {
+                                            console.error('Failed to save asset:', err);
+                                        }
+                                    };
+                                    reader.readAsDataURL(file);
+                                };
+
+                                const copyToClipboard = (text) => {
+                                    navigator.clipboard.writeText(text).then(() => {
+                                        alert(`Copied "${text}" to clipboard!`);
+                                    });
+                                };
+
+                                return (
+                                    <div>
+                                        {/* Avatars Section */}
+                                        <div className="form-section" style={{marginBottom: '24px'}}>
+                                            <h4 style={{color: '#9cdcfe', marginBottom: '12px', fontSize: '16px'}}>
+                                                🎭 Avatars ({avatars.size})
+                                            </h4>
+                                            {avatars.size === 0 ? (
+                                                <p style={{color: '#858585'}}>No avatars defined yet</p>
+                                            ) : (
+                                                <div style={{
+                                                    display: 'grid',
+                                                    gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
+                                                    gap: '12px'
+                                                }}>
+                                                    {Array.from(avatars).sort().map(avatar => (
+                                                        <div 
+                                                            key={avatar}
+                                                            style={{
+                                                                background: '#2d2d30',
+                                                                borderRadius: '6px',
+                                                                padding: '12px',
+                                                                cursor: 'pointer',
+                                                                border: selectedAsset === avatar ? '2px solid #0e639c' : '2px solid transparent',
+                                                                transition: 'all 0.2s'
+                                                            }}
+                                                            onClick={() => setSelectedAsset(avatar)}
+                                                        >
+                                                            {/* Image placeholder */}
+                                                            <div style={{
+                                                                width: '100%',
+                                                                height: '100px',
+                                                                background: uploadedAssets[avatar] ? `url(${uploadedAssets[avatar]}) center/contain no-repeat` : '#3e3e42',
+                                                                borderRadius: '4px',
+                                                                marginBottom: '8px',
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                justifyContent: 'center',
+                                                                fontSize: '40px',
+                                                                border: '1px solid #505050'
+                                                            }}>
+                                                                {!uploadedAssets[avatar] && '🎭'}
+                                                            </div>
+                                                            
+                                                            {/* Asset name */}
+                                                            <div style={{
+                                                                fontSize: '11px',
+                                                                color: '#d4d4d4',
+                                                                fontFamily: 'monospace',
+                                                                wordBreak: 'break-all',
+                                                                marginBottom: '8px',
+                                                                textAlign: 'center'
+                                                            }}>
+                                                                {avatar}
+                                                            </div>
+
+                                                            {/* Action buttons */}
+                                                            <div style={{display: 'flex', gap: '4px', flexDirection: 'column'}}>
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        copyToClipboard(avatar);
+                                                                    }}
+                                                                    style={{
+                                                                        padding: '4px 8px',
+                                                                        fontSize: '11px',
+                                                                        background: '#0e639c',
+                                                                        border: 'none',
+                                                                        borderRadius: '3px',
+                                                                        color: 'white',
+                                                                        cursor: 'pointer'
+                                                                    }}
+                                                                >
+                                                                    📋 Copy Name
+                                                                </button>
+                                                                <label style={{
+                                                                    padding: '4px 8px',
+                                                                    fontSize: '11px',
+                                                                    background: '#3e3e42',
+                                                                    border: 'none',
+                                                                    borderRadius: '3px',
+                                                                    color: 'white',
+                                                                    cursor: 'pointer',
+                                                                    textAlign: 'center'
+                                                                }}>
+                                                                    📁 Upload
+                                                                    <input
+                                                                        type="file"
+                                                                        accept="image/*"
+                                                                        style={{display: 'none'}}
+                                                                        onChange={(e) => {
+                                                                            if (e.target.files[0]) {
+                                                                                handleImageUpload(avatar, e.target.files[0]);
+                                                                            }
+                                                                        }}
+                                                                    />
+                                                                </label>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Icons Section */}
+                                        <div className="form-section">
+                                            <h4 style={{color: '#9cdcfe', marginBottom: '12px', fontSize: '16px'}}>
+                                                🎨 Icons ({icons.size})
+                                            </h4>
+                                            {icons.size === 0 ? (
+                                                <p style={{color: '#858585'}}>No icons defined yet</p>
+                                            ) : (
+                                                <div style={{
+                                                    display: 'grid',
+                                                    gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
+                                                    gap: '12px'
+                                                }}>
+                                                    {Array.from(icons).sort().map(icon => (
+                                                        <div 
+                                                            key={icon}
+                                                            style={{
+                                                                background: '#2d2d30',
+                                                                borderRadius: '6px',
+                                                                padding: '12px',
+                                                                cursor: 'pointer',
+                                                                border: selectedAsset === icon ? '2px solid #0e639c' : '2px solid transparent',
+                                                                transition: 'all 0.2s'
+                                                            }}
+                                                            onClick={() => setSelectedAsset(icon)}
+                                                        >
+                                                            {/* Image placeholder */}
+                                                            <div style={{
+                                                                width: '100%',
+                                                                height: '80px',
+                                                                background: uploadedAssets[icon] ? `url(${uploadedAssets[icon]}) center/contain no-repeat` : '#3e3e42',
+                                                                borderRadius: '4px',
+                                                                marginBottom: '8px',
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                justifyContent: 'center',
+                                                                fontSize: '32px',
+                                                                border: '1px solid #505050'
+                                                            }}>
+                                                                {!uploadedAssets[icon] && '🎨'}
+                                                            </div>
+                                                            
+                                                            {/* Asset name */}
+                                                            <div style={{
+                                                                fontSize: '11px',
+                                                                color: '#d4d4d4',
+                                                                fontFamily: 'monospace',
+                                                                wordBreak: 'break-all',
+                                                                marginBottom: '8px',
+                                                                textAlign: 'center'
+                                                            }}>
+                                                                {icon}
+                                                            </div>
+
+                                                            {/* Action buttons */}
+                                                            <div style={{display: 'flex', gap: '4px', flexDirection: 'column'}}>
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        copyToClipboard(icon);
+                                                                    }}
+                                                                    style={{
+                                                                        padding: '4px 8px',
+                                                                        fontSize: '11px',
+                                                                        background: '#0e639c',
+                                                                        border: 'none',
+                                                                        borderRadius: '3px',
+                                                                        color: 'white',
+                                                                        cursor: 'pointer'
+                                                                    }}
+                                                                >
+                                                                    📋 Copy Name
+                                                                </button>
+                                                                <label style={{
+                                                                    padding: '4px 8px',
+                                                                    fontSize: '11px',
+                                                                    background: '#3e3e42',
+                                                                    border: 'none',
+                                                                    borderRadius: '3px',
+                                                                    color: 'white',
+                                                                    cursor: 'pointer',
+                                                                    textAlign: 'center'
+                                                                }}>
+                                                                    📁 Upload
+                                                                    <input
+                                                                        type="file"
+                                                                        accept="image/*"
+                                                                        style={{display: 'none'}}
+                                                                        onChange={(e) => {
+                                                                            if (e.target.files[0]) {
+                                                                                handleImageUpload(icon, e.target.files[0]);
+                                                                            }
+                                                                        }}
+                                                                    />
+                                                                </label>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Info section */}
+                                        <div style={{
+                                            marginTop: '24px',
+                                            padding: '16px',
+                                            background: '#2d3d2d',
+                                            borderRadius: '6px',
+                                            fontSize: '13px',
+                                            color: '#d4d4d4'
+                                        }}>
+                                            <strong style={{color: '#4ec9b0'}}>💡 How to use:</strong>
+                                            <ul style={{marginTop: '8px', marginLeft: '20px', lineHeight: '1.6'}}>
+                                                <li>Click "📋 Copy Name" to copy the sprite name to clipboard</li>
+                                                <li>Click "📁 Upload" to upload a reference image for each asset</li>
+                                                <li>Images are stored in browser localStorage (not exported with JSON)</li>
+                                                <li>Use the copied names when setting avatars and icons in your game</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                );
+                            })()}
+                        </div>
+                    )}
 
                     {activeTab === 'bulkedit' && (
                         <div>
