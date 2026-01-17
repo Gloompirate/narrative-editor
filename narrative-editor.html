@@ -471,6 +471,16 @@
                     return {};
                 }
             });
+            const [userLibrary, setUserLibrary] = useState(() => {
+                // Load user library from localStorage
+                try {
+                    const saved = localStorage.getItem('narrative-editor-users');
+                    return saved ? JSON.parse(saved) : [];
+                } catch (e) {
+                    console.error('Failed to load user library:', e);
+                    return [];
+                }
+            });
 
             // Save notes to localStorage whenever they change
             useEffect(() => {
@@ -489,6 +499,15 @@
                     console.error('Failed to save tags:', e);
                 }
             }, [itemTags]);
+
+            // Save user library to localStorage whenever it changes
+            useEffect(() => {
+                try {
+                    localStorage.setItem('narrative-editor-users', JSON.stringify(userLibrary));
+                } catch (e) {
+                    console.error('Failed to save user library:', e);
+                }
+            }, [userLibrary]);
 
             // Auto-save data to localStorage every 30 seconds or on change
             useEffect(() => {
@@ -1126,6 +1145,7 @@
                                     setNotes={setNotes}
                                     itemTags={itemTags}
                                     setItemTags={setItemTags}
+                                    userLibrary={userLibrary}
                                 />
                             </>
                         )}
@@ -1136,7 +1156,22 @@
                             <JSONPanel data={data} setData={setData} showMessage={showMessage} />
                         )}
                         {view === 'utilities' && (
-                            <UtilitiesPanel data={data} getAllFlags={getAllFlags} getAllUsers={getAllUsers} setSelectedItem={setSelectedItem} setView={setView} runValidation={runValidation} searchAndReplace={searchAndReplace} bulkEdit={bulkEdit} notes={notes} setNotes={setNotes} itemTags={itemTags} setItemTags={setItemTags} />
+                            <UtilitiesPanel 
+                                data={data} 
+                                getAllFlags={getAllFlags} 
+                                getAllUsers={getAllUsers} 
+                                setSelectedItem={setSelectedItem} 
+                                setView={setView} 
+                                runValidation={runValidation} 
+                                searchAndReplace={searchAndReplace} 
+                                bulkEdit={bulkEdit} 
+                                notes={notes} 
+                                setNotes={setNotes} 
+                                itemTags={itemTags} 
+                                setItemTags={setItemTags}
+                                userLibrary={userLibrary}
+                                setUserLibrary={setUserLibrary}
+                            />
                         )}
                         {view === 'preview' && (
                             <div style={{flex: 1, display: 'flex', overflow: 'hidden'}}>
@@ -1324,7 +1359,7 @@
             );
         }
 
-        function EditorPanel({ data, selectedItem, updateItem, createReplyPosts, notes, setNotes, itemTags, setItemTags }) {
+        function EditorPanel({ data, selectedItem, updateItem, createReplyPosts, notes, setNotes, itemTags, setItemTags, userLibrary }) {
             if (!selectedItem) {
                 return (
                     <div className="editor-panel">
@@ -1359,6 +1394,7 @@
                     setNotes={setNotes}
                     itemTags={itemTags}
                     setItemTags={setItemTags}
+                    userLibrary={userLibrary}
                 />;
             }
         }
@@ -1851,7 +1887,7 @@
             );
         }
 
-        function PostEditor({ item, updateItem, data, catIndex, threadIndex, postIndex, createReplyPosts, notes, setNotes, itemTags, setItemTags }) {
+        function PostEditor({ item, updateItem, data, catIndex, threadIndex, postIndex, createReplyPosts, notes, setNotes, itemTags, setItemTags, userLibrary }) {
             const [parentPost, setParentPost] = React.useState(null);
 
             // When type changes to reply, find the previous post to quote
@@ -1902,6 +1938,21 @@
                 }
             };
 
+            const handleUserSelect = (userId) => {
+                if (userId === 'custom') {
+                    // Keep current values, allow manual editing
+                    return;
+                }
+                const user = userLibrary.find(u => u.id === userId);
+                if (user) {
+                    updateItem({
+                        user_name: user.name,
+                        user_rank: user.rank,
+                        avatar: user.avatar
+                    });
+                }
+            };
+
             return (
                 <div className="editor-panel">
                     <h2 style={{marginBottom: '24px', color: '#ce9178'}}>Edit Post</h2>
@@ -1926,6 +1977,27 @@
                         <label>Timestamp</label>
                         <input type="number" value={item.timestamp} onChange={(e) => updateItem({ timestamp: parseInt(e.target.value) })} />
                     </div>
+                    
+                    {/* User Picker */}
+                    {userLibrary && userLibrary.length > 0 && (
+                        <div className="form-group">
+                            <label>Select User from Library</label>
+                            <select 
+                                value=""
+                                onChange={(e) => handleUserSelect(e.target.value)}
+                                style={{marginBottom: '8px'}}
+                            >
+                                <option value="">-- Quick Select --</option>
+                                {userLibrary.filter(u => u.status === 'active').map(user => (
+                                    <option key={user.id} value={user.id}>
+                                        {user.name} {user.rank ? `(${user.rank})` : ''}
+                                    </option>
+                                ))}
+                                <option value="custom">-- Manual Entry --</option>
+                            </select>
+                        </div>
+                    )}
+                    
                     <div className="form-group">
                         <label>User Name</label>
                         <input type="text" value={item.user_name} onChange={(e) => updateItem({ user_name: e.target.value })} />
@@ -2134,6 +2206,7 @@
             const [validationIssues, setValidationIssues] = useState([]);
             const [simulatedFlags, setSimulatedFlags] = useState(new Set());
             const [showFlagDebugger, setShowFlagDebugger] = useState(false);
+            const [layoutDirection, setLayoutDirection] = useState('horizontal'); // 'horizontal' or 'vertical'
 
             // Run validation when data changes
             useEffect(() => {
@@ -2146,6 +2219,7 @@
                 const newNodes = [];
                 const newEdges = [];
                 let yOffset = 0;
+                let xOffset = 0; // For vertical layout
 
                 data.forEach((category, catIndex) => {
                     // Add category node
@@ -2495,9 +2569,19 @@
                     yOffset = threadYOffset + 150;
                 });
 
+                // Apply vertical layout transformation if needed
+                if (layoutDirection === 'vertical') {
+                    newNodes.forEach((node, index) => {
+                        node.position = {
+                            x: node.position.y,
+                            y: node.position.x
+                        };
+                    });
+                }
+
                 setNodes(newNodes);
                 setEdges(newEdges);
-            }, [data, collapsedBranches, validationIssues, simulatedFlags]);
+            }, [data, collapsedBranches, validationIssues, simulatedFlags, layoutDirection]);
 
             // Apply highlighting when a flag is selected
             useEffect(() => {
@@ -2704,6 +2788,35 @@
                         })()}
                     </div>
                     
+                    {/* Layout Controls */}
+                    <div style={{
+                        position: 'absolute',
+                        top: '10px',
+                        right: '280px',
+                        background: '#252526',
+                        padding: '12px',
+                        borderRadius: '6px',
+                        border: '1px solid #3e3e42',
+                        zIndex: 10
+                    }}>
+                        <div style={{fontWeight: 'bold', marginBottom: '8px', fontSize: '12px'}}>Layout:</div>
+                        <button
+                            onClick={() => setLayoutDirection(layoutDirection === 'horizontal' ? 'vertical' : 'horizontal')}
+                            style={{
+                                padding: '8px 12px',
+                                background: '#0e639c',
+                                border: 'none',
+                                borderRadius: '4px',
+                                color: 'white',
+                                cursor: 'pointer',
+                                fontSize: '12px',
+                                width: '100%'
+                            }}
+                        >
+                            {layoutDirection === 'horizontal' ? '⬇️ Vertical' : '➡️ Horizontal'}
+                        </button>
+                    </div>
+                    
                     <div style={{
                         position: 'absolute',
                         top: '10px',
@@ -2817,7 +2930,414 @@
             );
         }
 
-        function UtilitiesPanel({ data, getAllFlags, getAllUsers, setSelectedItem, setView, runValidation, searchAndReplace, bulkEdit, notes, setNotes, itemTags, setItemTags }) {
+        function UserLibraryPanel({ userLibrary, setUserLibrary, data }) {
+            const [editingUser, setEditingUser] = useState(null);
+            const [showCreateForm, setShowCreateForm] = useState(false);
+            const [newUser, setNewUser] = useState({
+                name: '',
+                rank: '',
+                avatar: '',
+                bio: '',
+                status: 'active'
+            });
+
+            // Auto-detect users from existing posts
+            const detectUsersFromData = () => {
+                const detectedUsers = new Map();
+                
+                data.forEach(cat => {
+                    cat.threads.forEach(thread => {
+                        thread.posts.forEach(post => {
+                            if (post.user_name && !detectedUsers.has(post.user_name)) {
+                                detectedUsers.set(post.user_name, {
+                                    id: `user_${post.user_name.toLowerCase().replace(/\s+/g, '_')}`,
+                                    name: post.user_name,
+                                    rank: post.user_rank || '',
+                                    avatar: post.avatar || '',
+                                    bio: '',
+                                    status: 'active',
+                                    firstAppearance: null,
+                                    postCount: 0
+                                });
+                            }
+                            if (detectedUsers.has(post.user_name)) {
+                                detectedUsers.get(post.user_name).postCount++;
+                            }
+                        });
+                    });
+                });
+
+                return Array.from(detectedUsers.values());
+            };
+
+            const createUser = (userData) => {
+                const newUser = {
+                    id: userData.id || `user_${Date.now()}`,
+                    name: userData.name,
+                    rank: userData.rank || '',
+                    avatar: userData.avatar || '',
+                    bio: userData.bio || '',
+                    status: userData.status || 'active',
+                    createdAt: new Date().toISOString()
+                };
+                setUserLibrary([...userLibrary, newUser]);
+                setShowCreateForm(false);
+            };
+
+            const updateUser = (userId, updates) => {
+                setUserLibrary(userLibrary.map(u => 
+                    u.id === userId ? {...u, ...updates} : u
+                ));
+            };
+
+            const deleteUser = (userId) => {
+                if (confirm('Delete this user from the library?')) {
+                    setUserLibrary(userLibrary.filter(u => u.id !== userId));
+                }
+            };
+
+            const importDetectedUsers = () => {
+                const detected = detectUsersFromData();
+                const newUsers = detected.filter(d => 
+                    !userLibrary.some(u => u.name === d.name)
+                );
+                
+                if (newUsers.length > 0) {
+                    setUserLibrary([...userLibrary, ...newUsers]);
+                    alert(`Imported ${newUsers.length} new users`);
+                } else {
+                    alert('No new users detected');
+                }
+            };
+
+            return (
+                <div>
+                    <h3 style={{marginBottom: '16px', color: '#4ec9b0'}}>User Library</h3>
+                    <p style={{color: '#858585', marginBottom: '20px', fontSize: '14px'}}>
+                        Manage characters/users for quick selection when creating posts.
+                    </p>
+
+                    {/* Action buttons */}
+                    <div style={{display: 'flex', gap: '12px', marginBottom: '20px'}}>
+                        <button
+                            onClick={() => setShowCreateForm(!showCreateForm)}
+                            style={{
+                                padding: '8px 16px',
+                                background: '#0e639c',
+                                border: 'none',
+                                borderRadius: '4px',
+                                color: 'white',
+                                cursor: 'pointer',
+                                fontSize: '14px'
+                            }}
+                        >
+                            + Create New User
+                        </button>
+                        <button
+                            onClick={importDetectedUsers}
+                            style={{
+                                padding: '8px 16px',
+                                background: '#3e3e42',
+                                border: 'none',
+                                borderRadius: '4px',
+                                color: 'white',
+                                cursor: 'pointer',
+                                fontSize: '14px'
+                            }}
+                        >
+                            📥 Import from Posts
+                        </button>
+                    </div>
+
+                    {/* Create form */}
+                    {showCreateForm && (
+                        <div style={{
+                            background: '#2d2d30',
+                            padding: '20px',
+                            borderRadius: '6px',
+                            marginBottom: '20px',
+                            border: '1px solid #3e3e42'
+                        }}>
+                            <h4 style={{marginBottom: '16px', color: '#dcdcaa'}}>Create New User</h4>
+                            <div style={{marginBottom: '12px'}}>
+                                <label style={{display: 'block', marginBottom: '4px', fontSize: '13px'}}>Name *</label>
+                                <input
+                                                type="text"
+                                                value={newUser.name}
+                                                onChange={(e) => setNewUser({...newUser, name: e.target.value})}
+                                                style={{width: '100%', padding: '8px', background: '#1e1e1e', border: '1px solid #3e3e42', color: 'white', borderRadius: '4px'}}
+                                                placeholder="Character name"
+                                            />
+                                        </div>
+                                        <div style={{marginBottom: '12px'}}>
+                                            <label style={{display: 'block', marginBottom: '4px', fontSize: '13px'}}>Rank</label>
+                                            <input
+                                                type="text"
+                                                value={newUser.rank}
+                                                onChange={(e) => setNewUser({...newUser, rank: e.target.value})}
+                                                style={{width: '100%', padding: '8px', background: '#1e1e1e', border: '1px solid #3e3e42', color: 'white', borderRadius: '4px'}}
+                                                placeholder="e.g., Moderator, Newbie"
+                                            />
+                                        </div>
+                                        <div style={{marginBottom: '12px'}}>
+                                            <label style={{display: 'block', marginBottom: '4px', fontSize: '13px'}}>Avatar</label>
+                                            <input
+                                                type="text"
+                                                value={newUser.avatar}
+                                                onChange={(e) => setNewUser({...newUser, avatar: e.target.value})}
+                                                style={{width: '100%', padding: '8px', background: '#1e1e1e', border: '1px solid #3e3e42', color: 'white', borderRadius: '4px'}}
+                                                placeholder="spr_avatar_name"
+                                            />
+                                        </div>
+                                        <div style={{marginBottom: '12px'}}>
+                                            <label style={{display: 'block', marginBottom: '4px', fontSize: '13px'}}>Biography</label>
+                                            <textarea
+                                                value={newUser.bio}
+                                                onChange={(e) => setNewUser({...newUser, bio: e.target.value})}
+                                                style={{width: '100%', padding: '8px', background: '#1e1e1e', border: '1px solid #3e3e42', color: 'white', borderRadius: '4px', minHeight: '80px'}}
+                                                placeholder="Background, personality, etc."
+                                            />
+                                        </div>
+                                        <div style={{display: 'flex', gap: '8px'}}>
+                                            <button
+                                                onClick={() => {
+                                                    if (newUser.name) {
+                                                        createUser(newUser);
+                                                        setNewUser({
+                                                            name: '',
+                                                            rank: '',
+                                                            avatar: '',
+                                                            bio: '',
+                                                            status: 'active'
+                                                        });
+                                                    } else {
+                                                        alert('Name is required');
+                                                    }
+                                                }}
+                                                style={{
+                                                    padding: '8px 16px',
+                                                    background: '#0e639c',
+                                                    border: 'none',
+                                                    borderRadius: '4px',
+                                                    color: 'white',
+                                                    cursor: 'pointer'
+                                                }}
+                                            >
+                                                Create
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    setShowCreateForm(false);
+                                                    setNewUser({
+                                                        name: '',
+                                                        rank: '',
+                                                        avatar: '',
+                                                        bio: '',
+                                                        status: 'active'
+                                                    });
+                                                }}
+                                                style={{
+                                                    padding: '8px 16px',
+                                                    background: '#3e3e42',
+                                                    border: 'none',
+                                                    borderRadius: '4px',
+                                                    color: 'white',
+                                                    cursor: 'pointer'
+                                                }}
+                                            >
+                                                Cancel
+                                            </button>
+                                        </div>
+                        </div>
+                    )}
+
+                    {/* User list */}
+                    <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+                        gap: '16px'
+                    }}>
+                        {userLibrary.map(user => {
+                            const isEditing = editingUser === user.id;
+                            
+                            if (isEditing) {
+                                // Edit mode
+                                return (
+                                    <div key={user.id} style={{
+                                        background: '#2d3d2d',
+                                        padding: '16px',
+                                        borderRadius: '6px',
+                                        border: '2px solid #0e639c'
+                                    }}>
+                                        <h4 style={{marginBottom: '12px', color: '#dcdcaa'}}>Edit User</h4>
+                                        <div style={{marginBottom: '8px'}}>
+                                            <label style={{display: 'block', fontSize: '11px', marginBottom: '4px'}}>Name</label>
+                                            <input
+                                                type="text"
+                                                value={user.name}
+                                                onChange={(e) => updateUser(user.id, { name: e.target.value })}
+                                                style={{width: '100%', padding: '6px', background: '#1e1e1e', border: '1px solid #3e3e42', color: 'white', borderRadius: '3px', fontSize: '13px'}}
+                                            />
+                                        </div>
+                                        <div style={{marginBottom: '8px'}}>
+                                            <label style={{display: 'block', fontSize: '11px', marginBottom: '4px'}}>Rank</label>
+                                            <input
+                                                type="text"
+                                                value={user.rank || ''}
+                                                onChange={(e) => updateUser(user.id, { rank: e.target.value })}
+                                                style={{width: '100%', padding: '6px', background: '#1e1e1e', border: '1px solid #3e3e42', color: 'white', borderRadius: '3px', fontSize: '13px'}}
+                                            />
+                                        </div>
+                                        <div style={{marginBottom: '8px'}}>
+                                            <label style={{display: 'block', fontSize: '11px', marginBottom: '4px'}}>Avatar</label>
+                                            <input
+                                                type="text"
+                                                value={user.avatar || ''}
+                                                onChange={(e) => updateUser(user.id, { avatar: e.target.value })}
+                                                style={{width: '100%', padding: '6px', background: '#1e1e1e', border: '1px solid #3e3e42', color: 'white', borderRadius: '3px', fontSize: '13px'}}
+                                            />
+                                        </div>
+                                        <div style={{marginBottom: '12px'}}>
+                                            <label style={{display: 'block', fontSize: '11px', marginBottom: '4px'}}>Bio</label>
+                                            <textarea
+                                                value={user.bio || ''}
+                                                onChange={(e) => updateUser(user.id, { bio: e.target.value })}
+                                                style={{width: '100%', padding: '6px', background: '#1e1e1e', border: '1px solid #3e3e42', color: 'white', borderRadius: '3px', fontSize: '13px', minHeight: '60px'}}
+                                            />
+                                        </div>
+                                        <button
+                                            onClick={() => setEditingUser(null)}
+                                            style={{
+                                                padding: '6px 12px',
+                                                background: '#0e639c',
+                                                border: 'none',
+                                                borderRadius: '4px',
+                                                color: 'white',
+                                                cursor: 'pointer',
+                                                fontSize: '12px',
+                                                width: '100%'
+                                            }}
+                                        >
+                                            ✓ Done Editing
+                                        </button>
+                                    </div>
+                                );
+                            }
+                            
+                            // View mode
+                            return (
+                            <div key={user.id} style={{
+                                background: '#2d2d30',
+                                padding: '16px',
+                                borderRadius: '6px',
+                                border: user.status === 'inactive' ? '2px solid #858585' : '2px solid #3e3e42'
+                            }}>
+                                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '12px'}}>
+                                    <div>
+                                        <h4 style={{color: '#dcdcaa', marginBottom: '4px'}}>{user.name}</h4>
+                                        {user.rank && <div style={{fontSize: '12px', color: '#9cdcfe'}}>{user.rank}</div>}
+                                    </div>
+                                    {user.status === 'inactive' && (
+                                        <span style={{
+                                            background: '#3e3e42',
+                                            padding: '2px 8px',
+                                            borderRadius: '3px',
+                                            fontSize: '11px',
+                                            color: '#858585'
+                                        }}>
+                                            Inactive
+                                        </span>
+                                    )}
+                                </div>
+                                
+                                {user.avatar && (
+                                    <div style={{
+                                        fontSize: '11px',
+                                        color: '#858585',
+                                        fontFamily: 'monospace',
+                                        marginBottom: '8px'
+                                    }}>
+                                        Avatar: {user.avatar}
+                                    </div>
+                                )}
+                                
+                                {user.bio && (
+                                    <div style={{
+                                        fontSize: '13px',
+                                        color: '#d4d4d4',
+                                        marginBottom: '12px',
+                                        lineHeight: '1.4'
+                                    }}>
+                                        {user.bio.substring(0, 100)}{user.bio.length > 100 ? '...' : ''}
+                                    </div>
+                                )}
+                                
+                                <div style={{display: 'flex', gap: '8px', marginTop: '12px'}}>
+                                    <button
+                                        onClick={() => setEditingUser(user.id)}
+                                        style={{
+                                            padding: '6px 12px',
+                                            background: '#0e639c',
+                                            border: 'none',
+                                            borderRadius: '4px',
+                                            color: 'white',
+                                            cursor: 'pointer',
+                                            fontSize: '12px'
+                                        }}
+                                    >
+                                        ✏️ Edit
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            const newStatus = user.status === 'active' ? 'inactive' : 'active';
+                                            updateUser(user.id, { status: newStatus });
+                                        }}
+                                        style={{
+                                            padding: '6px 12px',
+                                            background: '#3e3e42',
+                                            border: 'none',
+                                            borderRadius: '4px',
+                                            color: 'white',
+                                            cursor: 'pointer',
+                                            fontSize: '12px'
+                                        }}
+                                    >
+                                        {user.status === 'active' ? '🚫 Deactivate' : '✅ Activate'}
+                                    </button>
+                                    <button
+                                        onClick={() => deleteUser(user.id)}
+                                        style={{
+                                            padding: '6px 12px',
+                                            background: '#5a1e1e',
+                                            border: 'none',
+                                            borderRadius: '4px',
+                                            color: 'white',
+                                            cursor: 'pointer',
+                                            fontSize: '12px'
+                                        }}
+                                    >
+                                        🗑️
+                                    </button>
+                                </div>
+                            </div>
+                            );
+                        })}
+                    </div>
+
+                    {userLibrary.length === 0 && (
+                        <div style={{
+                            padding: '40px',
+                            textAlign: 'center',
+                            color: '#858585'
+                        }}>
+                            No users in library. Create one or import from existing posts.
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        function UtilitiesPanel({ data, getAllFlags, getAllUsers, setSelectedItem, setView, runValidation, searchAndReplace, bulkEdit, notes, setNotes, itemTags, setItemTags, userLibrary, setUserLibrary }) {
             const [activeTab, setActiveTab] = useState('flags');
             const [validationIssues, setValidationIssues] = useState(null);
             const [searchText, setSearchText] = useState('');
@@ -2908,7 +3428,21 @@
                         >
                             🎨 Asset Browser
                         </button>
+                        <button 
+                            onClick={() => setActiveTab('userlibrary')} 
+                            className={activeTab === 'userlibrary' ? '' : 'secondary'}
+                        >
+                            👥 User Library
+                        </button>
                     </div>
+
+                    {activeTab === 'userlibrary' && (
+                        <UserLibraryPanel 
+                            userLibrary={userLibrary}
+                            setUserLibrary={setUserLibrary}
+                            data={data}
+                        />
+                    )}
 
                     {activeTab === 'assetbrowser' && (
                         <div>
