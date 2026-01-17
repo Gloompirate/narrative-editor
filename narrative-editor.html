@@ -1150,7 +1150,17 @@
                             </>
                         )}
                         {view === 'graph' && (
-                            <GraphPanel data={data} setSelectedItem={setSelectedItem} onNodeDoubleClick={setDetailModalItem} runValidation={runValidation} notes={notes} itemTags={itemTags} />
+                            <GraphPanel 
+                                data={data} 
+                                setSelectedItem={setSelectedItem} 
+                                onNodeDoubleClick={setDetailModalItem} 
+                                runValidation={runValidation} 
+                                notes={notes} 
+                                itemTags={itemTags}
+                                onAddCategory={addCategory}
+                                onAddThread={addThread}
+                                onAddPost={addPost}
+                            />
                         )}
                         {view === 'json' && (
                             <JSONPanel data={data} setData={setData} showMessage={showMessage} />
@@ -2198,7 +2208,7 @@
             );
         }
 
-        function GraphPanel({ data, setSelectedItem, onNodeDoubleClick, runValidation, notes, itemTags }) {
+        function GraphPanel({ data, setSelectedItem, onNodeDoubleClick, runValidation, notes, itemTags, onAddCategory, onAddThread, onAddPost }) {
             const [nodes, setNodes] = useState([]);
             const [edges, setEdges] = useState([]);
             const [highlightedFlag, setHighlightedFlag] = useState(null);
@@ -2207,6 +2217,43 @@
             const [simulatedFlags, setSimulatedFlags] = useState(new Set());
             const [showFlagDebugger, setShowFlagDebugger] = useState(false);
             const [layoutDirection, setLayoutDirection] = useState('horizontal'); // 'horizontal' or 'vertical'
+            const [contextMenu, setContextMenu] = useState(null); // { x, y, nodeId, nodeType, path }
+
+            // Close context menu when clicking elsewhere
+            useEffect(() => {
+                const handleClick = () => setContextMenu(null);
+                document.addEventListener('click', handleClick);
+                return () => document.removeEventListener('click', handleClick);
+            }, []);
+
+            // Handle right-click on nodes
+            const onNodeContextMenu = (event, node) => {
+                event.preventDefault();
+                
+                // Parse node ID to get path
+                let nodeType, path;
+                if (node.id.startsWith('cat-')) {
+                    nodeType = 'category';
+                    const catIndex = parseInt(node.id.split('-')[1]);
+                    path = [catIndex];
+                } else if (node.id.startsWith('thread-')) {
+                    nodeType = 'thread';
+                    const parts = node.id.split('-');
+                    path = [parseInt(parts[1]), parseInt(parts[2])];
+                } else if (node.id.startsWith('post-')) {
+                    nodeType = 'post';
+                    const parts = node.id.split('-');
+                    path = [parseInt(parts[1]), parseInt(parts[2]), parseInt(parts[3])];
+                }
+
+                setContextMenu({
+                    x: event.clientX,
+                    y: event.clientY,
+                    nodeId: node.id,
+                    nodeType,
+                    path
+                });
+            };
 
             // Run validation when data changes
             useEffect(() => {
@@ -2861,6 +2908,7 @@
                         edges={edges}
                         onNodeClick={onNodeClick}
                         onNodeDoubleClick={onNodeDoubleClickHandler}
+                        onNodeContextMenu={onNodeContextMenu}
                         fitView
                         attributionPosition="bottom-left"
                     >
@@ -2886,6 +2934,104 @@
                             pannable
                         />
                     </ReactFlow.ReactFlow>
+
+                    {/* Context Menu */}
+                    {contextMenu && (
+                        <div
+                            style={{
+                                position: 'fixed',
+                                left: contextMenu.x,
+                                top: contextMenu.y,
+                                background: '#252526',
+                                border: '1px solid #3e3e42',
+                                borderRadius: '4px',
+                                padding: '4px 0',
+                                zIndex: 1000,
+                                minWidth: '180px',
+                                boxShadow: '0 4px 12px rgba(0,0,0,0.5)'
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <div style={{padding: '8px 12px', fontSize: '11px', color: '#858585', fontWeight: 'bold', borderBottom: '1px solid #3e3e42'}}>
+                                {contextMenu.nodeType === 'category' && '📁 Category'}
+                                {contextMenu.nodeType === 'thread' && '💬 Thread'}
+                                {contextMenu.nodeType === 'post' && '📝 Post'}
+                            </div>
+                            
+                            {contextMenu.nodeType === 'category' && (
+                                <div
+                                    style={{
+                                        padding: '8px 16px',
+                                        cursor: 'pointer',
+                                        fontSize: '13px',
+                                        color: '#d4d4d4'
+                                    }}
+                                    onMouseEnter={(e) => e.target.style.background = '#2a2d2e'}
+                                    onMouseLeave={(e) => e.target.style.background = 'transparent'}
+                                    onClick={() => {
+                                        onAddThread(contextMenu.path[0]);
+                                        setContextMenu(null);
+                                    }}
+                                >
+                                    + Add Thread Here
+                                </div>
+                            )}
+                            
+                            {contextMenu.nodeType === 'thread' && (
+                                <div
+                                    style={{
+                                        padding: '8px 16px',
+                                        cursor: 'pointer',
+                                        fontSize: '13px',
+                                        color: '#d4d4d4'
+                                    }}
+                                    onMouseEnter={(e) => e.target.style.background = '#2a2d2e'}
+                                    onMouseLeave={(e) => e.target.style.background = 'transparent'}
+                                    onClick={() => {
+                                        onAddPost(contextMenu.path[0], contextMenu.path[1]);
+                                        setContextMenu(null);
+                                    }}
+                                >
+                                    + Add Post Here
+                                </div>
+                            )}
+                            
+                            {contextMenu.nodeType === 'post' && (
+                                <div
+                                    style={{
+                                        padding: '8px 16px',
+                                        cursor: 'pointer',
+                                        fontSize: '13px',
+                                        color: '#d4d4d4'
+                                    }}
+                                    onMouseEnter={(e) => e.target.style.background = '#2a2d2e'}
+                                    onMouseLeave={(e) => e.target.style.background = 'transparent'}
+                                    onClick={() => {
+                                        onAddPost(contextMenu.path[0], contextMenu.path[1]);
+                                        setContextMenu(null);
+                                    }}
+                                >
+                                    + Add Post to Thread
+                                </div>
+                            )}
+                            
+                            <div style={{borderTop: '1px solid #3e3e42', margin: '4px 0'}}></div>
+                            
+                            <div
+                                style={{
+                                    padding: '8px 16px',
+                                    cursor: 'pointer',
+                                    fontSize: '13px',
+                                    color: '#858585'
+                                }}
+                                onMouseEnter={(e) => e.target.style.background = '#2a2d2e'}
+                                onMouseLeave={(e) => e.target.style.background = 'transparent'}
+                                onClick={() => setContextMenu(null)}
+                            >
+                                Cancel
+                            </div>
+                        </div>
+                    )}
                 </div>
             );
         }
