@@ -481,6 +481,20 @@
                     return [];
                 }
             });
+            
+            // Undo/Redo state
+            const [history, setHistory] = useState([]);
+            const [historyIndex, setHistoryIndex] = useState(-1);
+            const [snapshots, setSnapshots] = useState(() => {
+                // Load snapshots from localStorage
+                try {
+                    const saved = localStorage.getItem('narrative-editor-snapshots');
+                    return saved ? JSON.parse(saved) : [];
+                } catch (e) {
+                    console.error('Failed to load snapshots:', e);
+                    return [];
+                }
+            });
 
             // Save notes to localStorage whenever they change
             useEffect(() => {
@@ -508,6 +522,40 @@
                     console.error('Failed to save user library:', e);
                 }
             }, [userLibrary]);
+
+            // Save snapshots to localStorage whenever they change
+            useEffect(() => {
+                try {
+                    localStorage.setItem('narrative-editor-snapshots', JSON.stringify(snapshots));
+                } catch (e) {
+                    console.error('Failed to save snapshots:', e);
+                }
+            }, [snapshots]);
+
+            // Add to history when data changes (for undo/redo)
+            useEffect(() => {
+                // Don't add to history if we're undoing/redoing
+                if (historyIndex >= 0 && historyIndex < history.length - 1) {
+                    return;
+                }
+                
+                // Don't add duplicate entries
+                if (history.length > 0 && JSON.stringify(history[history.length - 1]) === JSON.stringify(data)) {
+                    return;
+                }
+
+                const newHistory = [...history.slice(0, historyIndex + 1), JSON.parse(JSON.stringify(data))];
+                
+                // Limit history to 50 entries
+                if (newHistory.length > 50) {
+                    newHistory.shift();
+                    setHistory(newHistory);
+                    setHistoryIndex(49);
+                } else {
+                    setHistory(newHistory);
+                    setHistoryIndex(newHistory.length - 1);
+                }
+            }, [data]);
 
             // Auto-save data to localStorage every 30 seconds or on change
             useEffect(() => {
@@ -555,6 +603,77 @@
                 }
                 
                 return finalId;
+            };
+
+            // Undo/Redo functions
+            const undo = () => {
+                if (historyIndex > 0) {
+                    setHistoryIndex(historyIndex - 1);
+                    setData(JSON.parse(JSON.stringify(history[historyIndex - 1])));
+                    showMessage('Undo', 'info');
+                }
+            };
+
+            const redo = () => {
+                if (historyIndex < history.length - 1) {
+                    setHistoryIndex(historyIndex + 1);
+                    setData(JSON.parse(JSON.stringify(history[historyIndex + 1])));
+                    showMessage('Redo', 'info');
+                }
+            };
+
+            // Keyboard shortcuts for undo/redo
+            useEffect(() => {
+                const handleKeyDown = (e) => {
+                    // Ctrl+Z or Cmd+Z for undo
+                    if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+                        e.preventDefault();
+                        undo();
+                    }
+                    // Ctrl+Shift+Z or Cmd+Shift+Z or Ctrl+Y for redo
+                    if (((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'z') || 
+                        (e.ctrlKey && e.key === 'y')) {
+                        e.preventDefault();
+                        redo();
+                    }
+                };
+
+                document.addEventListener('keydown', handleKeyDown);
+                return () => document.removeEventListener('keydown', handleKeyDown);
+            }, [historyIndex, history]);
+
+            // Snapshot functions
+            const createSnapshot = (name) => {
+                const snapshot = {
+                    id: Date.now(),
+                    name: name || `Snapshot ${snapshots.length + 1}`,
+                    timestamp: new Date().toISOString(),
+                    data: JSON.parse(JSON.stringify(data)),
+                    notes: JSON.parse(JSON.stringify(notes)),
+                    tags: JSON.parse(JSON.stringify(itemTags))
+                };
+                setSnapshots([...snapshots, snapshot]);
+                showMessage(`Snapshot "${snapshot.name}" created`, 'success');
+            };
+
+            const restoreSnapshot = (snapshotId) => {
+                const snapshot = snapshots.find(s => s.id === snapshotId);
+                if (snapshot) {
+                    if (confirm(`Restore snapshot "${snapshot.name}"? Current work will be added to undo history.`)) {
+                        setData(JSON.parse(JSON.stringify(snapshot.data)));
+                        setNotes(JSON.parse(JSON.stringify(snapshot.notes)));
+                        setItemTags(JSON.parse(JSON.stringify(snapshot.tags)));
+                        showMessage(`Restored "${snapshot.name}"`, 'success');
+                    }
+                }
+            };
+
+            const deleteSnapshot = (snapshotId) => {
+                const snapshot = snapshots.find(s => s.id === snapshotId);
+                if (snapshot && confirm(`Delete snapshot "${snapshot.name}"?`)) {
+                    setSnapshots(snapshots.filter(s => s.id !== snapshotId));
+                    showMessage(`Deleted "${snapshot.name}"`, 'success');
+                }
             };
 
             const getAllIds = () => {
@@ -1119,6 +1238,10 @@
                         setCurrentDay={setCurrentDay}
                         nextTimestamp={nextTimestamp}
                         onShowUtilities={() => setView('utilities')}
+                        onUndo={undo}
+                        onRedo={redo}
+                        canUndo={historyIndex > 0}
+                        canRedo={historyIndex < history.length - 1}
                     />
                     {message && (
                         <div className={message.type === 'error' ? 'error-message' : 'success-message'}>
@@ -1181,6 +1304,10 @@
                                 setItemTags={setItemTags}
                                 userLibrary={userLibrary}
                                 setUserLibrary={setUserLibrary}
+                                snapshots={snapshots}
+                                onCreateSnapshot={createSnapshot}
+                                onRestoreSnapshot={restoreSnapshot}
+                                onDeleteSnapshot={deleteSnapshot}
                             />
                         )}
                         {view === 'preview' && (
@@ -1207,7 +1334,7 @@
             );
         }
 
-        function Toolbar({ onAddCategory, onAddThread, onAddPost, onDelete, onExport, onImport, view, setView, selectedItem, currentDay, setCurrentDay, nextTimestamp, onShowUtilities }) {
+        function Toolbar({ onAddCategory, onAddThread, onAddPost, onDelete, onExport, onImport, view, setView, selectedItem, currentDay, setCurrentDay, nextTimestamp, onShowUtilities, onUndo, onRedo, canUndo, canRedo }) {
             const fileInputRef = React.useRef(null);
             const projectFileInputRef = React.useRef(null);
             
@@ -1223,6 +1350,28 @@
                     <button onClick={onDelete} className="secondary" disabled={!selectedItem}>
                         Delete Selected
                     </button>
+                    
+                    <div style={{borderLeft: '1px solid #3e3e42', height: '30px', margin: '0 8px'}}></div>
+                    
+                    <button 
+                        onClick={onUndo} 
+                        className="secondary" 
+                        disabled={!canUndo}
+                        title="Undo (Ctrl+Z)"
+                    >
+                        ↶ Undo
+                    </button>
+                    <button 
+                        onClick={onRedo} 
+                        className="secondary" 
+                        disabled={!canRedo}
+                        title="Redo (Ctrl+Y)"
+                    >
+                        ↷ Redo
+                    </button>
+                    
+                    <div style={{borderLeft: '1px solid #3e3e42', height: '30px', margin: '0 8px'}}></div>
+                    
                     <button onClick={onExport} className="secondary">Export JSON</button>
                     <button className="secondary" onClick={() => fileInputRef.current?.click()}>
                         Import JSON
@@ -3483,7 +3632,7 @@
             );
         }
 
-        function UtilitiesPanel({ data, getAllFlags, getAllUsers, setSelectedItem, setView, runValidation, searchAndReplace, bulkEdit, notes, setNotes, itemTags, setItemTags, userLibrary, setUserLibrary }) {
+        function UtilitiesPanel({ data, getAllFlags, getAllUsers, setSelectedItem, setView, runValidation, searchAndReplace, bulkEdit, notes, setNotes, itemTags, setItemTags, userLibrary, setUserLibrary, snapshots, onCreateSnapshot, onRestoreSnapshot, onDeleteSnapshot }) {
             const [activeTab, setActiveTab] = useState('flags');
             const [validationIssues, setValidationIssues] = useState(null);
             const [searchText, setSearchText] = useState('');
@@ -3580,7 +3729,129 @@
                         >
                             👥 User Library
                         </button>
+                        <button 
+                            onClick={() => setActiveTab('snapshots')} 
+                            className={activeTab === 'snapshots' ? '' : 'secondary'}
+                        >
+                            📸 Snapshots
+                        </button>
                     </div>
+
+                    {activeTab === 'snapshots' && (
+                        <div>
+                            <h3 style={{marginBottom: '16px', color: '#4ec9b0'}}>Snapshots</h3>
+                            <p style={{color: '#858585', marginBottom: '20px', fontSize: '14px'}}>
+                                Save named versions of your narrative. Perfect for milestones, experiments, or backups.
+                            </p>
+
+                            {/* Create snapshot */}
+                            <div style={{marginBottom: '20px'}}>
+                                <button
+                                    onClick={() => {
+                                        const name = prompt('Enter snapshot name:');
+                                        if (name) {
+                                            onCreateSnapshot(name);
+                                        }
+                                    }}
+                                    style={{
+                                        padding: '10px 20px',
+                                        background: '#0e639c',
+                                        border: 'none',
+                                        borderRadius: '4px',
+                                        color: 'white',
+                                        cursor: 'pointer',
+                                        fontSize: '14px'
+                                    }}
+                                >
+                                    📸 Create Snapshot
+                                </button>
+                            </div>
+
+                            {/* Snapshot list */}
+                            {snapshots.length === 0 ? (
+                                <div style={{
+                                    padding: '40px',
+                                    textAlign: 'center',
+                                    color: '#858585'
+                                }}>
+                                    No snapshots yet. Create one to save the current state!
+                                </div>
+                            ) : (
+                                <div style={{display: 'flex', flexDirection: 'column', gap: '12px'}}>
+                                    {snapshots.slice().reverse().map(snapshot => (
+                                        <div key={snapshot.id} style={{
+                                            background: '#2d2d30',
+                                            padding: '16px',
+                                            borderRadius: '6px',
+                                            border: '1px solid #3e3e42'
+                                        }}>
+                                            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '8px'}}>
+                                                <div>
+                                                    <h4 style={{color: '#dcdcaa', marginBottom: '4px'}}>{snapshot.name}</h4>
+                                                    <div style={{fontSize: '12px', color: '#858585'}}>
+                                                        {new Date(snapshot.timestamp).toLocaleString()}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                            <div style={{fontSize: '13px', color: '#9cdcfe', marginBottom: '12px'}}>
+                                                {snapshot.data.length} categories, {snapshot.data.reduce((sum, cat) => sum + cat.threads.length, 0)} threads
+                                            </div>
+                                            
+                                            <div style={{display: 'flex', gap: '8px'}}>
+                                                <button
+                                                    onClick={() => onRestoreSnapshot(snapshot.id)}
+                                                    style={{
+                                                        padding: '6px 12px',
+                                                        background: '#0e639c',
+                                                        border: 'none',
+                                                        borderRadius: '4px',
+                                                        color: 'white',
+                                                        cursor: 'pointer',
+                                                        fontSize: '12px'
+                                                    }}
+                                                >
+                                                    ↶ Restore
+                                                </button>
+                                                <button
+                                                    onClick={() => onDeleteSnapshot(snapshot.id)}
+                                                    style={{
+                                                        padding: '6px 12px',
+                                                        background: '#5a1e1e',
+                                                        border: 'none',
+                                                        borderRadius: '4px',
+                                                        color: 'white',
+                                                        cursor: 'pointer',
+                                                        fontSize: '12px'
+                                                    }}
+                                                >
+                                                    🗑️ Delete
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* Info */}
+                            <div style={{
+                                marginTop: '24px',
+                                padding: '16px',
+                                background: '#2d3d2d',
+                                borderRadius: '6px',
+                                fontSize: '13px',
+                                color: '#d4d4d4'
+                            }}>
+                                <strong style={{color: '#4ec9b0'}}>💡 About Snapshots:</strong>
+                                <ul style={{marginTop: '8px', marginLeft: '20px', lineHeight: '1.6'}}>
+                                    <li>Snapshots save your data, notes, and tags</li>
+                                    <li>Use them before major changes or experiments</li>
+                                    <li>Restoring adds current work to undo history</li>
+                                    <li>Snapshots persist across sessions</li>
+                                </ul>
+                            </div>
+                        </div>
+                    )}
 
                     {activeTab === 'userlibrary' && (
                         <UserLibraryPanel 
