@@ -504,6 +504,11 @@
                 return () => clearTimeout(timer);
             }, [data]);
 
+            // Expose data to window for project save
+            useEffect(() => {
+                window.narrativeData = data;
+            }, [data]);
+
             // Smart ID generation
             const generateId = (type, text, existingIds) => {
                 const stopWords = ['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'is', 'was', 'are'];
@@ -1159,6 +1164,7 @@
 
         function Toolbar({ onAddCategory, onAddThread, onAddPost, onDelete, onExport, onImport, view, setView, selectedItem, currentDay, setCurrentDay, nextTimestamp, onShowUtilities }) {
             const fileInputRef = React.useRef(null);
+            const projectFileInputRef = React.useRef(null);
             
             return (
                 <div className="toolbar">
@@ -1176,14 +1182,46 @@
                     <button className="secondary" onClick={() => fileInputRef.current?.click()}>
                         Import JSON
                     </button>
+                    
+                    <div style={{borderLeft: '1px solid #3e3e42', height: '30px', margin: '0 8px'}}></div>
+                    
+                    <button className="secondary" onClick={() => {
+                        try {
+                            // Gather all project data
+                            const projectData = {
+                                version: '1.0',
+                                timestamp: new Date().toISOString(),
+                                data: window.narrativeData, // The JSON data
+                                notes: JSON.parse(localStorage.getItem('narrative-editor-notes') || '{}'),
+                                tags: JSON.parse(localStorage.getItem('narrative-editor-tags') || '{}'),
+                                assets: JSON.parse(localStorage.getItem('narrative-editor-assets') || '{}')
+                            };
+                            
+                            const blob = new Blob([JSON.stringify(projectData, null, 2)], { type: 'application/json' });
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = `narrative-project-${new Date().toISOString().split('T')[0]}.neproj`;
+                            a.click();
+                            URL.revokeObjectURL(url);
+                        } catch (e) {
+                            alert('Failed to save project: ' + e.message);
+                        }
+                    }} title="Save complete project (JSON + notes + tags + assets)">
+                        💾 Save Project
+                    </button>
+                    
+                    <button className="secondary" onClick={() => projectFileInputRef.current?.click()} title="Load complete project file">
+                        📂 Load Project
+                    </button>
+                    
                     <button className="secondary" onClick={() => {
                         try {
                             const saved = localStorage.getItem('narrative-editor-data-autosave');
                             const time = localStorage.getItem('narrative-editor-data-autosave-time');
                             if (saved) {
                                 if (confirm(`Load auto-saved data from ${time ? new Date(time).toLocaleString() : 'unknown time'}?`)) {
-                                    const data = JSON.parse(saved);
-                                    window.location.reload(); // Reload with auto-save
+                                    window.location.reload();
                                 }
                             } else {
                                 alert('No auto-saved data found');
@@ -1192,13 +1230,64 @@
                             alert('Failed to load auto-save: ' + e.message);
                         }
                     }} title="Load auto-saved data from browser storage">
-                        💾 Load Auto-save
+                        ⏮️ Load Auto-save
                     </button>
+                    
                     <input 
                         ref={fileInputRef}
                         type="file" 
                         accept=".json" 
                         onChange={onImport} 
+                        style={{display: 'none'}} 
+                    />
+                    <input 
+                        ref={projectFileInputRef}
+                        type="file" 
+                        accept=".neproj,.json" 
+                        onChange={(e) => {
+                            const file = e.target.files[0];
+                            if (file) {
+                                const reader = new FileReader();
+                                reader.onload = (event) => {
+                                    try {
+                                        const projectData = JSON.parse(event.target.result);
+                                        
+                                        // Check if it's a project file or just JSON
+                                        if (projectData.version && projectData.data) {
+                                            // It's a project file - restore everything
+                                            if (confirm('This will replace all current data, notes, tags, and assets. Continue?')) {
+                                                // Save data
+                                                localStorage.setItem('narrative-editor-data-autosave', JSON.stringify(projectData.data));
+                                                
+                                                // Save notes
+                                                if (projectData.notes) {
+                                                    localStorage.setItem('narrative-editor-notes', JSON.stringify(projectData.notes));
+                                                }
+                                                
+                                                // Save tags
+                                                if (projectData.tags) {
+                                                    localStorage.setItem('narrative-editor-tags', JSON.stringify(projectData.tags));
+                                                }
+                                                
+                                                // Save assets
+                                                if (projectData.assets) {
+                                                    localStorage.setItem('narrative-editor-assets', JSON.stringify(projectData.assets));
+                                                }
+                                                
+                                                alert('Project loaded successfully! Refreshing...');
+                                                window.location.reload();
+                                            }
+                                        } else {
+                                            // It's just JSON data - treat as regular import
+                                            onImport(e);
+                                        }
+                                    } catch (error) {
+                                        alert('Failed to load project: ' + error.message);
+                                    }
+                                };
+                                reader.readAsText(file);
+                            }
+                        }} 
                         style={{display: 'none'}} 
                     />
                     
