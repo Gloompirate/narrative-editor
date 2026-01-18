@@ -5296,6 +5296,16 @@
             const [bulkPreview, setBulkPreview] = useState(null);
             const [uploadedAssets, setUploadedAssets] = useState({});
             const [selectedAsset, setSelectedAsset] = useState(null);
+            
+            // Playthrough state
+            const [playthroughState, setPlaythroughState] = useState({
+                currentDay: 0,
+                flags: new Set(),
+                history: [],
+                currentThreadPath: null,
+                currentPostIndex: 0
+            });
+            
             const flags = getAllFlags();
             const users = getAllUsers();
 
@@ -6490,18 +6500,400 @@
 
                     {activeTab === 'playthrough' && (
                         <div>
-                            <h3 style={{marginBottom: '16px', color: '#4ec9b0'}}>Story Path Generator</h3>
+                            <h3 style={{marginBottom: '16px', color: '#4ec9b0'}}>🎮 Interactive Playthrough</h3>
                             <p style={{color: '#858585', marginBottom: '20px', fontSize: '14px'}}>
-                                This feature generates all possible story paths but is complex with large datasets.
+                                Test your narrative interactively - make choices, see branching paths, and verify story flow
                             </p>
-                            <div style={{padding: '20px', background: '#2d2d30', borderRadius: '6px', marginBottom: '16px'}}>
-                                <h4 style={{margin: '0 0 12px 0', color: '#dcdcaa'}}>💡 Recommended Alternatives</h4>
-                                <ul style={{margin: 0, paddingLeft: '20px', lineHeight: '1.8'}}>
-                                    <li><strong>Preview</strong> - Interactively play through your narrative with full control</li>
-                                    <li><strong>Validation</strong> - Analyze structure, find dead ends, and check dependencies</li>
-                                    <li><strong>Timeline</strong> - See when content unlocks day-by-day</li>
-                                </ul>
-                            </div>
+
+                            {(() => {
+                                // Use state from parent UtilitiesPanel
+
+                                const resetPlaythrough = () => {
+                                    setPlaythroughState({
+                                        currentDay: 0,
+                                        flags: new Set(),
+                                        history: [],
+                                        currentThreadPath: null,
+                                        currentPostIndex: 0
+                                    });
+                                };
+
+                                const makeChoice = (option) => {
+                                    const newFlags = new Set(playthroughState.flags);
+                                    if (option.set_flag) {
+                                        newFlags.add(option.set_flag);
+                                    }
+
+                                    const newHistory = [...playthroughState.history, {
+                                        thread: playthroughState.currentThreadPath,
+                                        postIndex: playthroughState.currentPostIndex,
+                                        choice: option.text,
+                                        flag: option.set_flag
+                                    }];
+
+                                    setPlaythroughState({
+                                        ...playthroughState,
+                                        flags: newFlags,
+                                        history: newHistory,
+                                        currentPostIndex: playthroughState.currentPostIndex + 1
+                                    });
+                                };
+
+                                const advanceDay = () => {
+                                    setPlaythroughState({
+                                        ...playthroughState,
+                                        currentDay: playthroughState.currentDay + 1
+                                    });
+                                };
+
+                                const selectThread = (catIdx, threadIdx) => {
+                                    setPlaythroughState({
+                                        ...playthroughState,
+                                        currentThreadPath: [catIdx, threadIdx],
+                                        currentPostIndex: 0
+                                    });
+                                };
+
+                                // Get available threads
+                                const getAvailableThreads = () => {
+                                    const available = [];
+                                    data.forEach((cat, catIdx) => {
+                                        cat.threads.forEach((thread, threadIdx) => {
+                                            // Check conditions
+                                            let isAvailable = true;
+                                            if (thread.conditions) {
+                                                if (thread.conditions.min_day && playthroughState.currentDay < thread.conditions.min_day) {
+                                                    isAvailable = false;
+                                                }
+                                                if (thread.conditions.requires_flag && !playthroughState.flags.has(thread.conditions.requires_flag)) {
+                                                    isAvailable = false;
+                                                }
+                                            }
+                                            if (isAvailable) {
+                                                available.push({
+                                                    category: cat.title,
+                                                    thread: thread,
+                                                    catIdx,
+                                                    threadIdx
+                                                });
+                                            }
+                                        });
+                                    });
+                                    return available;
+                                };
+
+                                // Get current post
+                                const getCurrentPost = () => {
+                                    if (!playthroughState.currentThreadPath) return null;
+                                    const [catIdx, threadIdx] = playthroughState.currentThreadPath;
+                                    const thread = data[catIdx].threads[threadIdx];
+                                    const post = thread.posts[playthroughState.currentPostIndex];
+                                    
+                                    if (!post) return null;
+
+                                    // Check if post is available
+                                    if (post.conditions) {
+                                        if (post.conditions.min_day && playthroughState.currentDay < post.conditions.min_day) {
+                                            return null;
+                                        }
+                                        if (post.conditions.requires_flag && !playthroughState.flags.has(post.conditions.requires_flag)) {
+                                            return null;
+                                        }
+                                    }
+                                    return post;
+                                };
+
+                                const availableThreads = getAvailableThreads();
+                                const currentPost = getCurrentPost();
+                                const currentThread = playthroughState.currentThreadPath ? 
+                                    data[playthroughState.currentThreadPath[0]].threads[playthroughState.currentThreadPath[1]] : null;
+
+                                return (
+                                    <div style={{display: 'flex', gap: '20px', height: 'calc(100vh - 200px)'}}>
+                                        {/* Left sidebar - State & History */}
+                                        <div style={{
+                                            width: '280px',
+                                            background: '#252526',
+                                            borderRadius: '8px',
+                                            padding: '20px',
+                                            overflowY: 'auto'
+                                        }}>
+                                            <div style={{marginBottom: '20px'}}>
+                                                <div style={{
+                                                    background: '#4ec9b0',
+                                                    color: '#1e1e1e',
+                                                    padding: '8px 12px',
+                                                    borderRadius: '4px',
+                                                    fontWeight: 'bold',
+                                                    marginBottom: '12px'
+                                                }}>
+                                                    📅 Day {playthroughState.currentDay}
+                                                </div>
+                                                <button
+                                                    onClick={advanceDay}
+                                                    style={{
+                                                        width: '100%',
+                                                        padding: '8px',
+                                                        background: '#0e639c',
+                                                        border: 'none',
+                                                        borderRadius: '4px',
+                                                        color: 'white',
+                                                        cursor: 'pointer',
+                                                        marginBottom: '4px'
+                                                    }}
+                                                >
+                                                    ⏩ Next Day
+                                                </button>
+                                                <button
+                                                    onClick={resetPlaythrough}
+                                                    style={{
+                                                        width: '100%',
+                                                        padding: '8px',
+                                                        background: '#5a1e1e',
+                                                        border: 'none',
+                                                        borderRadius: '4px',
+                                                        color: 'white',
+                                                        cursor: 'pointer'
+                                                    }}
+                                                >
+                                                    🔄 Reset
+                                                </button>
+                                            </div>
+
+                                            <div style={{marginBottom: '20px'}}>
+                                                <h4 style={{color: '#dcdcaa', fontSize: '14px', marginBottom: '8px'}}>
+                                                    🏁 Flags ({playthroughState.flags.size})
+                                                </h4>
+                                                {playthroughState.flags.size === 0 ? (
+                                                    <div style={{color: '#858585', fontSize: '12px'}}>No flags set</div>
+                                                ) : (
+                                                    <div style={{display: 'flex', flexWrap: 'wrap', gap: '4px'}}>
+                                                        {Array.from(playthroughState.flags).map(flag => (
+                                                            <div key={flag} style={{
+                                                                background: '#2d3d2d',
+                                                                color: '#4ec9b0',
+                                                                padding: '4px 8px',
+                                                                borderRadius: '3px',
+                                                                fontSize: '11px'
+                                                            }}>
+                                                                {flag}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            <div>
+                                                <h4 style={{color: '#dcdcaa', fontSize: '14px', marginBottom: '8px'}}>
+                                                    📜 History ({playthroughState.history.length})
+                                                </h4>
+                                                {playthroughState.history.length === 0 ? (
+                                                    <div style={{color: '#858585', fontSize: '12px'}}>No choices made</div>
+                                                ) : (
+                                                    <div style={{fontSize: '12px'}}>
+                                                        {playthroughState.history.slice().reverse().map((entry, idx) => (
+                                                            <div key={idx} style={{
+                                                                padding: '8px',
+                                                                background: '#2d2d30',
+                                                                borderRadius: '4px',
+                                                                marginBottom: '6px',
+                                                                borderLeft: '3px solid #9cdcfe'
+                                                            }}>
+                                                                <div style={{color: '#9cdcfe', marginBottom: '4px'}}>
+                                                                    ▸ {entry.choice}
+                                                                </div>
+                                                                {entry.flag && (
+                                                                    <div style={{color: '#4ec9b0', fontSize: '10px'}}>
+                                                                        Set: {entry.flag}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* Main content area */}
+                                        <div style={{flex: 1, display: 'flex', flexDirection: 'column', gap: '20px', overflow: 'hidden'}}>
+                                            {/* Thread selector */}
+                                            <div style={{
+                                                background: '#252526',
+                                                borderRadius: '8px',
+                                                padding: '20px',
+                                                maxHeight: '300px',
+                                                overflow: 'auto',
+                                                flexShrink: 0
+                                            }}>
+                                                <h4 style={{color: '#4ec9b0', marginBottom: '12px'}}>
+                                                    Available Threads ({availableThreads.length})
+                                                </h4>
+                                                {availableThreads.length === 0 ? (
+                                                    <div style={{color: '#858585', padding: '20px', textAlign: 'center'}}>
+                                                        No threads available. Try advancing the day or making different choices.
+                                                    </div>
+                                                ) : (
+                                                    <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '12px'}}>
+                                                        {availableThreads.map(({category, thread, catIdx, threadIdx}) => (
+                                                            <button
+                                                                key={`${catIdx}-${threadIdx}`}
+                                                                onClick={() => selectThread(catIdx, threadIdx)}
+                                                                style={{
+                                                                    padding: '12px',
+                                                                    background: playthroughState.currentThreadPath?.[0] === catIdx && 
+                                                                               playthroughState.currentThreadPath?.[1] === threadIdx ? 
+                                                                               '#0e639c' : '#2d2d30',
+                                                                    border: 'none',
+                                                                    borderRadius: '4px',
+                                                                    color: 'white',
+                                                                    cursor: 'pointer',
+                                                                    textAlign: 'left'
+                                                                }}
+                                                            >
+                                                                <div style={{fontSize: '10px', color: '#858585', marginBottom: '4px'}}>
+                                                                    {category}
+                                                                </div>
+                                                                <div style={{fontWeight: 'bold', marginBottom: '4px'}}>
+                                                                    {thread.title}
+                                                                </div>
+                                                                {thread.subtitle && (
+                                                                    <div style={{fontSize: '12px', color: '#9cdcfe'}}>
+                                                                        {thread.subtitle}
+                                                                    </div>
+                                                                )}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* Current post display */}
+                                            {currentThread && (
+                                                <div style={{
+                                                    background: '#252526',
+                                                    borderRadius: '8px',
+                                                    padding: '20px',
+                                                    flex: 1,
+                                                    minHeight: 0,
+                                                    overflowY: 'auto'
+                                                }}>
+                                                    <div style={{marginBottom: '20px'}}>
+                                                        <h3 style={{color: '#dcdcaa', marginBottom: '8px'}}>
+                                                            {currentThread.title}
+                                                        </h3>
+                                                        <div style={{color: '#858585', fontSize: '12px'}}>
+                                                            Post {playthroughState.currentPostIndex + 1} / {currentThread.posts.length}
+                                                        </div>
+                                                    </div>
+
+                                                    {currentPost ? (
+                                                        <div>
+                                                            <div style={{
+                                                                background: '#2d2d30',
+                                                                padding: '16px',
+                                                                borderRadius: '6px',
+                                                                borderLeft: '4px solid #9cdcfe',
+                                                                marginBottom: '20px'
+                                                            }}>
+                                                                <div style={{marginBottom: '12px'}}>
+                                                                    <strong style={{color: '#9cdcfe', fontSize: '16px'}}>
+                                                                        {currentPost.user_name}
+                                                                    </strong>
+                                                                    {currentPost.user_rank && (
+                                                                        <span style={{color: '#858585', fontSize: '13px', marginLeft: '8px'}}>
+                                                                            {currentPost.user_rank}
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                                <div style={{color: '#d4d4d4', lineHeight: '1.6', whiteSpace: 'pre-wrap'}}>
+                                                                    {currentPost.body}
+                                                                </div>
+                                                            </div>
+
+                                                            {currentPost.options && currentPost.options.length > 0 ? (
+                                                                <div>
+                                                                    <h4 style={{color: '#4ec9b0', marginBottom: '12px'}}>
+                                                                        Your Response:
+                                                                    </h4>
+                                                                    <div style={{display: 'flex', flexDirection: 'column', gap: '8px'}}>
+                                                                        {currentPost.options.map((option, idx) => (
+                                                                            <button
+                                                                                key={idx}
+                                                                                onClick={() => makeChoice(option)}
+                                                                                style={{
+                                                                                    padding: '12px 16px',
+                                                                                    background: '#0e639c',
+                                                                                    border: 'none',
+                                                                                    borderRadius: '4px',
+                                                                                    color: 'white',
+                                                                                    cursor: 'pointer',
+                                                                                    textAlign: 'left',
+                                                                                    fontSize: '14px'
+                                                                                }}
+                                                                            >
+                                                                                <div>{option.text}</div>
+                                                                                {option.set_flag && (
+                                                                                    <div style={{fontSize: '11px', color: '#4ec9b0', marginTop: '4px'}}>
+                                                                                        → Sets: {option.set_flag}
+                                                                                    </div>
+                                                                                )}
+                                                                            </button>
+                                                                        ))}
+                                                                    </div>
+                                                                </div>
+                                                            ) : (
+                                                                <button
+                                                                    onClick={() => setPlaythroughState({
+                                                                        ...playthroughState,
+                                                                        currentPostIndex: playthroughState.currentPostIndex + 1
+                                                                    })}
+                                                                    style={{
+                                                                        padding: '12px 24px',
+                                                                        background: '#3e3e42',
+                                                                        border: 'none',
+                                                                        borderRadius: '4px',
+                                                                        color: 'white',
+                                                                        cursor: 'pointer'
+                                                                    }}
+                                                                >
+                                                                    Continue →
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    ) : playthroughState.currentPostIndex >= currentThread.posts.length ? (
+                                                        <div style={{
+                                                            padding: '40px',
+                                                            textAlign: 'center',
+                                                            color: '#858585'
+                                                        }}>
+                                                            <div style={{fontSize: '48px', marginBottom: '16px'}}>🎬</div>
+                                                            <div style={{fontSize: '18px', marginBottom: '8px'}}>Thread Complete!</div>
+                                                            <div style={{fontSize: '14px'}}>Select another thread to continue</div>
+                                                        </div>
+                                                    ) : (
+                                                        <div style={{
+                                                            padding: '40px',
+                                                            textAlign: 'center',
+                                                            color: '#858585'
+                                                        }}>
+                                                            <div style={{fontSize: '48px', marginBottom: '16px'}}>🔒</div>
+                                                            <div style={{fontSize: '18px', marginBottom: '8px'}}>Post Locked</div>
+                                                            <div style={{fontSize: '14px'}}>
+                                                                {currentThread.posts[playthroughState.currentPostIndex].conditions?.min_day && 
+                                                                    `Available on Day ${currentThread.posts[playthroughState.currentPostIndex].conditions.min_day}`
+                                                                }
+                                                                {currentThread.posts[playthroughState.currentPostIndex].conditions?.requires_flag && 
+                                                                    ` • Requires: ${currentThread.posts[playthroughState.currentPostIndex].conditions.requires_flag}`
+                                                                }
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })()}
                         </div>
                     )}
 
