@@ -1285,6 +1285,9 @@
                                 onAddPost={addPost}
                             />
                         )}
+                        {view === 'screenplay' && (
+                            <ScreenplayPanel data={data} setSelectedItem={setSelectedItem} />
+                        )}
                         {view === 'json' && (
                             <JSONPanel data={data} setData={setData} showMessage={showMessage} />
                         )}
@@ -1506,6 +1509,9 @@
                         </button>
                         <button onClick={() => setView('graph')} className={view === 'graph' ? '' : 'secondary'}>
                             Graph View
+                        </button>
+                        <button onClick={() => setView('screenplay')} className={view === 'screenplay' ? '' : 'secondary'}>
+                            📖 Screenplay
                         </button>
                         <button onClick={() => setView('preview')} className={view === 'preview' ? '' : 'secondary'}>
                             👁️ Preview
@@ -3184,6 +3190,315 @@
                 </div>
             );
         }
+        function ScreenplayPanel({ data, setSelectedItem }) {
+            const [selectedThread, setSelectedThread] = useState(null);
+
+            // Get all threads from all categories
+            const getAllThreads = () => {
+                const threads = [];
+                data.forEach((cat, catIndex) => {
+                    cat.threads.forEach((thread, threadIndex) => {
+                        threads.push({
+                            ...thread,
+                            categoryTitle: cat.title,
+                            path: [catIndex, threadIndex]
+                        });
+                    });
+                });
+                return threads;
+            };
+
+            const threads = getAllThreads();
+            const currentThread = selectedThread || (threads.length > 0 ? threads[0] : null);
+
+            // Render a post in screenplay format
+            const renderPost = (post, postIndex) => {
+                const isReply = post.type === 'reply';
+                const isAlert = post.type === 'alert';
+
+                return (
+                    <div 
+                        key={postIndex}
+                        style={{
+                            marginBottom: '24px',
+                            paddingLeft: isReply ? '40px' : '0',
+                            borderLeft: isReply ? '3px solid #ce9178' : 'none'
+                        }}
+                    >
+                        {/* Quote (for replies) */}
+                        {isReply && post.quote_user && (
+                            <div style={{
+                                background: '#2d2d30',
+                                padding: '12px',
+                                borderRadius: '4px',
+                                marginBottom: '12px',
+                                borderLeft: '3px solid #858585',
+                                fontSize: '13px',
+                                color: '#858585',
+                                fontStyle: 'italic'
+                            }}>
+                                <div style={{fontWeight: 'bold', marginBottom: '4px'}}>
+                                    {post.quote_user} wrote:
+                                </div>
+                                {post.quote_text}
+                            </div>
+                        )}
+
+                        {/* Post header */}
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '12px',
+                            marginBottom: '8px'
+                        }}>
+                            <div style={{
+                                fontWeight: 'bold',
+                                color: isAlert ? '#dcdcaa' : isReply ? '#ce9178' : '#9cdcfe',
+                                fontSize: '15px'
+                            }}>
+                                {post.user_name}
+                            </div>
+                            {post.user_rank && (
+                                <div style={{
+                                    fontSize: '12px',
+                                    color: '#858585',
+                                    padding: '2px 8px',
+                                    background: '#2d2d30',
+                                    borderRadius: '3px'
+                                }}>
+                                    {post.user_rank}
+                                </div>
+                            )}
+                            <div style={{fontSize: '12px', color: '#858585'}}>
+                                Day {Math.floor(post.timestamp / 100)}
+                            </div>
+                        </div>
+
+                        {/* Post body */}
+                        <div style={{
+                            color: '#d4d4d4',
+                            lineHeight: '1.6',
+                            fontSize: '14px',
+                            whiteSpace: 'pre-wrap'
+                        }}>
+                            {post.body}
+                        </div>
+
+                        {/* Options (choices) */}
+                        {post.options && post.options.length > 0 && (
+                            <div style={{
+                                marginTop: '16px',
+                                padding: '16px',
+                                background: '#2d3d2d',
+                                borderRadius: '6px',
+                                borderLeft: '4px solid #4ec9b0'
+                            }}>
+                                <div style={{
+                                    fontWeight: 'bold',
+                                    color: '#4ec9b0',
+                                    marginBottom: '12px',
+                                    fontSize: '13px'
+                                }}>
+                                    PLAYER CHOICES:
+                                </div>
+                                {post.options.map((option, optIndex) => (
+                                    <div key={optIndex} style={{
+                                        marginBottom: '12px',
+                                        paddingLeft: '16px'
+                                    }}>
+                                        <div style={{
+                                            color: '#dcdcaa',
+                                            fontWeight: 'bold',
+                                            marginBottom: '4px'
+                                        }}>
+                                            ▸ {option.text}
+                                        </div>
+                                        {option.reply_body && (
+                                            <div style={{
+                                                color: '#9cdcfe',
+                                                fontSize: '13px',
+                                                paddingLeft: '12px',
+                                                fontStyle: 'italic'
+                                            }}>
+                                                → "{option.reply_body}"
+                                            </div>
+                                        )}
+                                        {option.set_flag && (
+                                            <div style={{
+                                                fontSize: '11px',
+                                                color: '#858585',
+                                                paddingLeft: '12px',
+                                                marginTop: '2px'
+                                            }}>
+                                                Sets: {option.set_flag}
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        {/* Flags */}
+                        {(post.conditions?.requires_flag || post.set_flag) && (
+                            <div style={{
+                                marginTop: '12px',
+                                fontSize: '11px',
+                                color: '#858585',
+                                display: 'flex',
+                                gap: '12px'
+                            }}>
+                                {post.conditions?.requires_flag && (
+                                    <span>🔒 Requires: {post.conditions.requires_flag}</span>
+                                )}
+                                {post.set_flag && (
+                                    <span>🏁 Sets: {post.set_flag}</span>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                );
+            };
+
+            return (
+                <div style={{
+                    display: 'flex',
+                    height: '100%',
+                    overflow: 'hidden'
+                }}>
+                    {/* Thread selector sidebar */}
+                    <div style={{
+                        width: '280px',
+                        borderRight: '1px solid #3e3e42',
+                        overflowY: 'auto',
+                        background: '#1e1e1e',
+                        padding: '16px'
+                    }}>
+                        <h3 style={{
+                            color: '#4ec9b0',
+                            marginBottom: '16px',
+                            fontSize: '16px'
+                        }}>
+                            Select Thread
+                        </h3>
+                        <div style={{display: 'flex', flexDirection: 'column', gap: '8px'}}>
+                            {threads.map((thread, index) => (
+                                <div
+                                    key={index}
+                                    onClick={() => setSelectedThread(thread)}
+                                    style={{
+                                        padding: '12px',
+                                        background: currentThread === thread ? '#2d3d2d' : '#2d2d30',
+                                        borderRadius: '4px',
+                                        cursor: 'pointer',
+                                        border: currentThread === thread ? '2px solid #4ec9b0' : '2px solid transparent',
+                                        transition: 'all 0.2s'
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        if (currentThread !== thread) {
+                                            e.target.style.background = '#3e3e42';
+                                        }
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        if (currentThread !== thread) {
+                                            e.target.style.background = '#2d2d30';
+                                        }
+                                    }}
+                                >
+                                    <div style={{
+                                        fontSize: '13px',
+                                        color: '#dcdcaa',
+                                        fontWeight: 'bold',
+                                        marginBottom: '4px'
+                                    }}>
+                                        {thread.title}
+                                    </div>
+                                    <div style={{
+                                        fontSize: '11px',
+                                        color: '#858585'
+                                    }}>
+                                        {thread.categoryTitle} • {thread.posts.length} posts
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Screenplay content */}
+                    <div style={{
+                        flex: 1,
+                        overflowY: 'auto',
+                        padding: '32px 48px'
+                    }}>
+                        {currentThread ? (
+                            <>
+                                {/* Thread header */}
+                                <div style={{
+                                    marginBottom: '32px',
+                                    paddingBottom: '24px',
+                                    borderBottom: '2px solid #3e3e42'
+                                }}>
+                                    <div style={{
+                                        fontSize: '11px',
+                                        color: '#858585',
+                                        textTransform: 'uppercase',
+                                        letterSpacing: '1px',
+                                        marginBottom: '8px'
+                                    }}>
+                                        {currentThread.categoryTitle}
+                                    </div>
+                                    <h1 style={{
+                                        fontSize: '28px',
+                                        color: '#dcdcaa',
+                                        marginBottom: '8px'
+                                    }}>
+                                        {currentThread.title}
+                                    </h1>
+                                    <div style={{
+                                        fontSize: '14px',
+                                        color: '#9cdcfe'
+                                    }}>
+                                        {currentThread.subtitle}
+                                    </div>
+                                    <div style={{
+                                        marginTop: '16px',
+                                        fontSize: '12px',
+                                        color: '#858585'
+                                    }}>
+                                        {currentThread.posts.length} posts
+                                        {currentThread.conditions?.min_day && ` • Available from Day ${currentThread.conditions.min_day}`}
+                                        {currentThread.conditions?.requires_flag && ` • Requires: ${currentThread.conditions.requires_flag}`}
+                                    </div>
+                                </div>
+
+                                {/* Posts */}
+                                <div>
+                                    {currentThread.posts.map((post, index) => renderPost(post, index))}
+                                </div>
+
+                                {currentThread.posts.length === 0 && (
+                                    <div style={{
+                                        padding: '40px',
+                                        textAlign: 'center',
+                                        color: '#858585'
+                                    }}>
+                                        This thread has no posts yet.
+                                    </div>
+                                )}
+                            </>
+                        ) : (
+                            <div style={{
+                                padding: '40px',
+                                textAlign: 'center',
+                                color: '#858585'
+                            }}>
+                                No threads available. Create some threads to view them here!
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        }
+
         function JSONPanel({ data, setData, showMessage }) {
             const [jsonText, setJsonText] = useState(JSON.stringify(data, null, 2));
             const [error, setError] = useState(null);
