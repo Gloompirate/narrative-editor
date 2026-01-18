@@ -2797,6 +2797,7 @@
             const [showFlagDebugger, setShowFlagDebugger] = useState(false);
             const [layoutDirection, setLayoutDirection] = useState('horizontal'); // 'horizontal' or 'vertical'
             const [contextMenu, setContextMenu] = useState(null); // { x, y, nodeId, nodeType, path }
+            const reactFlowInstance = React.useRef(null);
 
             // Close context menu when clicking elsewhere
             useEffect(() => {
@@ -2804,6 +2805,16 @@
                 document.addEventListener('click', handleClick);
                 return () => document.removeEventListener('click', handleClick);
             }, []);
+
+            // Trigger fitView when layout direction changes
+            useEffect(() => {
+                if (reactFlowInstance.current) {
+                    // Small delay to allow layout to render
+                    setTimeout(() => {
+                        reactFlowInstance.current.fitView({ padding: 0.2, duration: 400 });
+                    }, 50);
+                }
+            }, [layoutDirection]);
 
             // Handle right-click on nodes
             const onNodeContextMenu = (event, node) => {
@@ -3488,6 +3499,7 @@
                         onNodeClick={onNodeClick}
                         onNodeDoubleClick={onNodeDoubleClickHandler}
                         onNodeContextMenu={onNodeContextMenu}
+                        onInit={(instance) => { reactFlowInstance.current = instance; }}
                         fitView
                         attributionPosition="bottom-left"
                     >
