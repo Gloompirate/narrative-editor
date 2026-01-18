@@ -446,6 +446,7 @@
             const [currentDay, setCurrentDay] = useState(0);
             const [nextTimestamp, setNextTimestamp] = useState(1000);
             const [detailModalItem, setDetailModalItem] = useState(null);
+            const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
             const [notes, setNotes] = useState(() => {
                 // Load notes from localStorage
                 try {
@@ -1204,6 +1205,276 @@
                 showMessage('JSON exported', 'success');
             };
 
+            const exportYarn = () => {
+                let yarnContent = '';
+                let nodeIndex = 0;
+                
+                data.forEach((category, catIdx) => {
+                    category.threads.forEach((thread, threadIdx) => {
+                        thread.posts.forEach((post, postIdx) => {
+                            // Node header
+                            yarnContent += `title: ${post.id}\n`;
+                            yarnContent += `tags: ${category.title},${thread.title}\n`;
+                            yarnContent += `colorID: ${postIdx % 10}\n`;
+                            yarnContent += `position: ${catIdx * 300},${threadIdx * 200 + postIdx * 100}\n`;
+                            yarnContent += `---\n`;
+                            
+                            // Conditions
+                            if (post.conditions) {
+                                if (post.conditions.requires_flag) {
+                                    yarnContent += `<<if $${post.conditions.requires_flag}>>\n`;
+                                }
+                                if (post.conditions.min_day) {
+                                    yarnContent += `<<if $current_day >= ${post.conditions.min_day}>>\n`;
+                                }
+                            }
+                            
+                            // Post header
+                            yarnContent += `[b]${post.user_name}[/b]`;
+                            if (post.user_rank) {
+                                yarnContent += ` (${post.user_rank})`;
+                            }
+                            yarnContent += `\n\n`;
+                            
+                            // Post body
+                            yarnContent += `${post.body}\n\n`;
+                            
+                            // Options (player choices)
+                            if (post.options && post.options.length > 0) {
+                                post.options.forEach(option => {
+                                    // Set flag if option sets one
+                                    if (option.set_flag) {
+                                        yarnContent += `[[${option.text} -> Set ${option.set_flag}|${post.id}_choice_${option.set_flag}]]\n`;
+                                    } else {
+                                        yarnContent += `[[${option.text}|${post.id}_next]]\n`;
+                                    }
+                                });
+                            } else {
+                                // Auto-link to next post in thread if exists
+                                if (postIdx < thread.posts.length - 1) {
+                                    const nextPost = thread.posts[postIdx + 1];
+                                    yarnContent += `[[Continue|${nextPost.id}]]\n`;
+                                }
+                            }
+                            
+                            // Close conditions
+                            if (post.conditions) {
+                                if (post.conditions.min_day) {
+                                    yarnContent += `<<endif>>\n`;
+                                }
+                                if (post.conditions.requires_flag) {
+                                    yarnContent += `<<endif>>\n`;
+                                }
+                            }
+                            
+                            // Node separator
+                            yarnContent += `===\n\n`;
+                        });
+                        
+                        // Add choice result nodes
+                        thread.posts.forEach((post, postIdx) => {
+                            if (post.options) {
+                                post.options.forEach(option => {
+                                    if (option.set_flag) {
+                                        yarnContent += `title: ${post.id}_choice_${option.set_flag}\n`;
+                                        yarnContent += `tags: choice_result\n`;
+                                        yarnContent += `colorID: 5\n`;
+                                        yarnContent += `position: ${catIdx * 300 + 150},${threadIdx * 200 + postIdx * 100 + 50}\n`;
+                                        yarnContent += `---\n`;
+                                        yarnContent += `<<set $${option.set_flag} to true>>\n`;
+                                        if (option.reply_body) {
+                                            yarnContent += `${option.reply_body}\n\n`;
+                                        }
+                                        // Link to next post
+                                        if (postIdx < thread.posts.length - 1) {
+                                            const nextPost = thread.posts[postIdx + 1];
+                                            yarnContent += `[[Continue|${nextPost.id}]]\n`;
+                                        }
+                                        yarnContent += `===\n\n`;
+                                    }
+                                });
+                            }
+                        });
+                    });
+                });
+                
+                const blob = new Blob([yarnContent], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'narrative.yarn';
+                a.click();
+                URL.revokeObjectURL(url);
+                showMessage('Yarn Script exported', 'success');
+            };
+
+            const exportHTML = () => {
+                let html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Narrative Export</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 900px; margin: 40px auto; padding: 20px; background: #f5f5f5; color: #333; }
+        .category { background: white; margin-bottom: 40px; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .category-title { font-size: 28px; color: #2c5282; margin-bottom: 10px; border-bottom: 3px solid #4299e1; padding-bottom: 10px; }
+        .thread { margin-top: 30px; padding: 20px; background: #fafafa; border-radius: 6px; border-left: 4px solid #f6ad55; }
+        .thread-title { font-size: 22px; color: #c05621; margin-bottom: 15px; }
+        .post { margin: 20px 0; padding: 15px; background: white; border-radius: 4px; border-left: 3px solid #4299e1; }
+        .post-reply { border-left-color: #ed8936; margin-left: 30px; }
+        .post-alert { border-left-color: #ecc94b; background: #fffbeb; }
+        .post-header { font-weight: bold; color: #2d3748; margin-bottom: 8px; }
+        .post-rank { color: #718096; font-size: 14px; }
+        .post-body { line-height: 1.6; white-space: pre-wrap; }
+        .choices { margin-top: 15px; padding: 15px; background: #e6fffa; border-radius: 4px; border: 2px solid #38b2ac; }
+        .choice { margin: 8px 0; padding: 8px; background: white; border-radius: 3px; }
+        .conditions { font-size: 12px; color: #718096; margin-top: 8px; font-style: italic; }
+    </style>
+</head>
+<body>
+    <h1>Narrative Export</h1>\n`;
+
+                data.forEach(category => {
+                    html += `    <div class="category">\n`;
+                    html += `        <div class="category-title">${category.title}</div>\n`;
+                    if (category.subtitle) {
+                        html += `        <div style="color: #718096; margin-bottom: 20px;">${category.subtitle}</div>\n`;
+                    }
+                    
+                    category.threads.forEach(thread => {
+                        html += `        <div class="thread">\n`;
+                        html += `            <div class="thread-title">${thread.title}</div>\n`;
+                        if (thread.subtitle) {
+                            html += `            <div style="color: #718096; margin-bottom: 15px;">${thread.subtitle}</div>\n`;
+                        }
+                        
+                        thread.posts.forEach(post => {
+                            const postClass = post.type === 'reply' ? 'post post-reply' : post.type === 'alert' ? 'post post-alert' : 'post';
+                            html += `            <div class="${postClass}">\n`;
+                            html += `                <div class="post-header">${post.user_name}`;
+                            if (post.user_rank) {
+                                html += ` <span class="post-rank">(${post.user_rank})</span>`;
+                            }
+                            html += `</div>\n`;
+                            html += `                <div class="post-body">${post.body}</div>\n`;
+                            
+                            if (post.options && post.options.length > 0) {
+                                html += `                <div class="choices">\n`;
+                                html += `                    <strong>Player Choices:</strong>\n`;
+                                post.options.forEach(option => {
+                                    html += `                    <div class="choice">▸ ${option.text}`;
+                                    if (option.set_flag) {
+                                        html += ` <span style="color: #38b2ac;">[Sets: ${option.set_flag}]</span>`;
+                                    }
+                                    html += `</div>\n`;
+                                });
+                                html += `                </div>\n`;
+                            }
+                            
+                            if (post.conditions || post.set_flag) {
+                                html += `                <div class="conditions">`;
+                                if (post.conditions?.requires_flag) {
+                                    html += `Requires: ${post.conditions.requires_flag} `;
+                                }
+                                if (post.conditions?.min_day) {
+                                    html += `Available from Day ${post.conditions.min_day} `;
+                                }
+                                if (post.set_flag) {
+                                    html += `Sets: ${post.set_flag}`;
+                                }
+                                html += `</div>\n`;
+                            }
+                            
+                            html += `            </div>\n`;
+                        });
+                        
+                        html += `        </div>\n`;
+                    });
+                    
+                    html += `    </div>\n`;
+                });
+
+                html += `</body>\n</html>`;
+                
+                const blob = new Blob([html], { type: 'text/html' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'narrative.html';
+                a.click();
+                URL.revokeObjectURL(url);
+                showMessage('HTML exported', 'success');
+            };
+
+            const exportMarkdown = () => {
+                let md = `# Narrative Export\n\n`;
+                
+                data.forEach(category => {
+                    md += `## ${category.title}\n\n`;
+                    if (category.subtitle) {
+                        md += `*${category.subtitle}*\n\n`;
+                    }
+                    
+                    category.threads.forEach(thread => {
+                        md += `### ${thread.title}\n\n`;
+                        if (thread.subtitle) {
+                            md += `*${thread.subtitle}*\n\n`;
+                        }
+                        
+                        thread.posts.forEach(post => {
+                            md += `**${post.user_name}**`;
+                            if (post.user_rank) {
+                                md += ` *(${post.user_rank})*`;
+                            }
+                            md += `\n\n`;
+                            
+                            if (post.type === 'reply') {
+                                md += `> `;
+                            }
+                            md += `${post.body}\n\n`;
+                            
+                            if (post.options && post.options.length > 0) {
+                                md += `**Player Choices:**\n\n`;
+                                post.options.forEach(option => {
+                                    md += `- ▸ ${option.text}`;
+                                    if (option.set_flag) {
+                                        md += ` *[Sets: ${option.set_flag}]*`;
+                                    }
+                                    md += `\n`;
+                                });
+                                md += `\n`;
+                            }
+                            
+                            if (post.conditions || post.set_flag) {
+                                md += `*`;
+                                if (post.conditions?.requires_flag) {
+                                    md += `Requires: ${post.conditions.requires_flag} `;
+                                }
+                                if (post.conditions?.min_day) {
+                                    md += `Available from Day ${post.conditions.min_day} `;
+                                }
+                                if (post.set_flag) {
+                                    md += `Sets: ${post.set_flag}`;
+                                }
+                                md += `*\n\n`;
+                            }
+                            
+                            md += `---\n\n`;
+                        });
+                    });
+                });
+                
+                const blob = new Blob([md], { type: 'text/markdown' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'narrative.md';
+                a.click();
+                URL.revokeObjectURL(url);
+                showMessage('Markdown exported', 'success');
+            };
+
             const importJSON = (event) => {
                 const file = event.target.files[0];
                 if (file) {
@@ -1230,6 +1501,9 @@
                         onAddPost={() => selectedItem?.type === 'thread' && addPost(selectedItem.path[0], selectedItem.path[1])}
                         onDelete={deleteItem}
                         onExport={exportJSON}
+                        onExportYarn={exportYarn}
+                        onExportHTML={exportHTML}
+                        onExportMarkdown={exportMarkdown}
                         onImport={importJSON}
                         view={view}
                         setView={setView}
@@ -1238,6 +1512,7 @@
                         setCurrentDay={setCurrentDay}
                         nextTimestamp={nextTimestamp}
                         onShowUtilities={() => setView('utilities')}
+                        onShowKeyboardShortcuts={() => setShowKeyboardShortcuts(true)}
                         onUndo={undo}
                         onRedo={redo}
                         canUndo={historyIndex > 0}
@@ -1315,7 +1590,15 @@
                         )}
                         {view === 'preview' && (
                             <div style={{flex: 1, display: 'flex', overflow: 'hidden'}}>
-                                <ForumPreviewPanel data={data} simulatedDay={simulatedDay} setSimulatedDay={setSimulatedDay} simulatedFlags={simulatedFlags} setSimulatedFlags={setSimulatedFlags} />
+                                <ForumPreviewPanel 
+                                    data={data} 
+                                    simulatedDay={simulatedDay} 
+                                    setSimulatedDay={setSimulatedDay} 
+                                    simulatedFlags={simulatedFlags} 
+                                    setSimulatedFlags={setSimulatedFlags}
+                                    setSelectedItem={setSelectedItem}
+                                    setView={setView}
+                                />
                             </div>
                         )}
                     </div>
@@ -1333,25 +1616,29 @@
                             runValidation={runValidation}
                         />
                     )}
+                    {showKeyboardShortcuts && (
+                        <KeyboardShortcutsModal onClose={() => setShowKeyboardShortcuts(false)} />
+                    )}
                 </div>
             );
         }
 
-        function Toolbar({ onAddCategory, onAddThread, onAddPost, onDelete, onExport, onImport, view, setView, selectedItem, currentDay, setCurrentDay, nextTimestamp, onShowUtilities, onUndo, onRedo, canUndo, canRedo }) {
+        function Toolbar({ onAddCategory, onAddThread, onAddPost, onDelete, onExport, onExportYarn, onExportHTML, onExportMarkdown, onImport, view, setView, selectedItem, currentDay, setCurrentDay, nextTimestamp, onShowUtilities, onShowKeyboardShortcuts, onUndo, onRedo, canUndo, canRedo }) {
             const fileInputRef = React.useRef(null);
             const projectFileInputRef = React.useRef(null);
+            const [showExportMenu, setShowExportMenu] = useState(false);
             
             return (
                 <div className="toolbar">
-                    <button onClick={onAddCategory}>+ Category</button>
+                    <button onClick={onAddCategory}>➕ Category</button>
                     <button onClick={onAddThread} disabled={!selectedItem || selectedItem.type !== 'category'}>
-                        + Thread
+                        ➕ Thread
                     </button>
                     <button onClick={onAddPost} disabled={!selectedItem || selectedItem.type !== 'thread'}>
-                        + Post
+                        ➕ Post
                     </button>
                     <button onClick={onDelete} className="secondary" disabled={!selectedItem}>
-                        Delete Selected
+                        🗑️ Delete
                     </button>
                     
                     <div style={{borderLeft: '1px solid #3e3e42', height: '30px', margin: '0 8px'}}></div>
@@ -1375,9 +1662,95 @@
                     
                     <div style={{borderLeft: '1px solid #3e3e42', height: '30px', margin: '0 8px'}}></div>
                     
-                    <button onClick={onExport} className="secondary">Export JSON</button>
+                    <div style={{position: 'relative', display: 'inline-block'}}>
+                        <button 
+                            onClick={() => setShowExportMenu(!showExportMenu)} 
+                            className="secondary"
+                        >
+                            📤 Export ▾
+                        </button>
+                        {showExportMenu && (
+                            <div style={{
+                                position: 'absolute',
+                                top: '100%',
+                                left: 0,
+                                background: '#252526',
+                                border: '1px solid #3e3e42',
+                                borderRadius: '4px',
+                                marginTop: '4px',
+                                minWidth: '180px',
+                                zIndex: 1000,
+                                boxShadow: '0 4px 12px rgba(0,0,0,0.5)'
+                            }}>
+                                <div 
+                                    style={{
+                                        padding: '10px 16px',
+                                        cursor: 'pointer',
+                                        fontSize: '14px',
+                                        borderBottom: '1px solid #3e3e42'
+                                    }}
+                                    onMouseEnter={(e) => e.target.style.background = '#2a2d2e'}
+                                    onMouseLeave={(e) => e.target.style.background = 'transparent'}
+                                    onClick={() => {
+                                        onExport();
+                                        setShowExportMenu(false);
+                                    }}
+                                >
+                                    JSON (data only)
+                                </div>
+                                <div 
+                                    style={{
+                                        padding: '10px 16px',
+                                        cursor: 'pointer',
+                                        fontSize: '14px',
+                                        borderBottom: '1px solid #3e3e42'
+                                    }}
+                                    onMouseEnter={(e) => e.target.style.background = '#2a2d2e'}
+                                    onMouseLeave={(e) => e.target.style.background = 'transparent'}
+                                    onClick={() => {
+                                        onExportYarn();
+                                        setShowExportMenu(false);
+                                    }}
+                                >
+                                    Yarn Script (game engine)
+                                </div>
+                                <div 
+                                    style={{
+                                        padding: '10px 16px',
+                                        cursor: 'pointer',
+                                        fontSize: '14px',
+                                        borderBottom: '1px solid #3e3e42'
+                                    }}
+                                    onMouseEnter={(e) => e.target.style.background = '#2a2d2e'}
+                                    onMouseLeave={(e) => e.target.style.background = 'transparent'}
+                                    onClick={() => {
+                                        onExportHTML();
+                                        setShowExportMenu(false);
+                                    }}
+                                >
+                                    HTML (web page)
+                                </div>
+                                <div 
+                                    style={{
+                                        padding: '10px 16px',
+                                        cursor: 'pointer',
+                                        fontSize: '14px'
+                                    }}
+                                    onMouseEnter={(e) => e.target.style.background = '#2a2d2e'}
+                                    onMouseLeave={(e) => e.target.style.background = 'transparent'}
+                                    onClick={() => {
+                                        onExportMarkdown();
+                                        setShowExportMenu(false);
+                                    }}
+                                >
+                                    Markdown (text)
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                    
                     <button className="secondary" onClick={() => fileInputRef.current?.click()}>
-                        Import JSON
+                        📥 Import JSON
                     </button>
                     
                     <div style={{borderLeft: '1px solid #3e3e42', height: '30px', margin: '0 8px'}}></div>
@@ -1502,13 +1875,16 @@
                     <button onClick={onShowUtilities} className="secondary" style={{marginLeft: '12px'}}>
                         📊 Utilities
                     </button>
+                    <button onClick={onShowKeyboardShortcuts} className="secondary" title="View keyboard shortcuts">
+                        ⌨️
+                    </button>
                     
                     <div className="view-toggle">
                         <button onClick={() => setView('tree')} className={view === 'tree' ? '' : 'secondary'}>
-                            Tree View
+                            🌲 Tree View
                         </button>
                         <button onClick={() => setView('graph')} className={view === 'graph' ? '' : 'secondary'}>
-                            Graph View
+                            📊 Graph View
                         </button>
                         <button onClick={() => setView('screenplay')} className={view === 'screenplay' ? '' : 'secondary'}>
                             📖 Screenplay
@@ -1517,7 +1893,7 @@
                             👁️ Preview
                         </button>
                         <button onClick={() => setView('json')} className={view === 'json' ? '' : 'secondary'}>
-                            JSON View
+                            📄 JSON View
                         </button>
                     </div>
                 </div>
@@ -3194,6 +3570,7 @@
             const [selectedThread, setSelectedThread] = useState(null);
             const [editingPost, setEditingPost] = useState(null); // { catIndex, threadIndex, postIndex }
             const [editForm, setEditForm] = useState(null);
+            const [searchQuery, setSearchQuery] = useState('');
 
             // Get all threads from all categories
             const getAllThreads = () => {
@@ -3669,9 +4046,50 @@
                                     </div>
                                 </div>
 
+                                {/* Search box */}
+                                <div style={{
+                                    marginTop: '20px',
+                                    marginBottom: '20px'
+                                }}>
+                                    <input 
+                                        type="text"
+                                        placeholder="🔍 Search posts in this thread..."
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        style={{
+                                            width: '100%',
+                                            padding: '12px 16px',
+                                            background: '#1e1e1e',
+                                            border: '1px solid #3e3e42',
+                                            borderRadius: '6px',
+                                            color: 'white',
+                                            fontSize: '14px'
+                                        }}
+                                    />
+                                    {searchQuery && (
+                                        <div style={{
+                                            marginTop: '8px',
+                                            fontSize: '12px',
+                                            color: '#858585'
+                                        }}>
+                                            Showing {currentThread.posts.filter(post => 
+                                                post.user_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                                                post.body.toLowerCase().includes(searchQuery.toLowerCase())
+                                            ).length} / {currentThread.posts.length} posts
+                                        </div>
+                                    )}
+                                </div>
                                 {/* Posts */}
                                 <div>
-                                    {currentThread.posts.map((post, index) => renderPost(post, index))}
+                                    {currentThread.posts
+                                        .filter(post => {
+                                            if (!searchQuery) return true;
+                                            const query = searchQuery.toLowerCase();
+                                            return post.user_name.toLowerCase().includes(query) ||
+                                                   post.body.toLowerCase().includes(query);
+                                        })
+                                        .map((post, index) => renderPost(post, currentThread.posts.indexOf(post)))
+                                    }
                                 </div>
 
                                 {currentThread.posts.length === 0 && (
@@ -3681,6 +4099,19 @@
                                         color: '#858585'
                                     }}>
                                         This thread has no posts yet.
+                                    </div>
+                                )}
+                                {searchQuery && currentThread.posts.filter(post => {
+                                    const query = searchQuery.toLowerCase();
+                                    return post.user_name.toLowerCase().includes(query) ||
+                                           post.body.toLowerCase().includes(query);
+                                }).length === 0 && (
+                                    <div style={{
+                                        padding: '40px',
+                                        textAlign: 'center',
+                                        color: '#858585'
+                                    }}>
+                                        No posts match your search.
                                     </div>
                                 )}
                             </>
@@ -4187,65 +4618,173 @@
                 <div className="editor-panel" style={{padding: '20px'}}>
                     <h2 style={{marginBottom: '20px'}}>Utilities & Analytics</h2>
                     
-                    <div style={{display: 'flex', gap: '12px', marginBottom: '20px', flexWrap: 'wrap'}}>
+                    <div style={{
+                        display: 'flex', 
+                        gap: '8px', 
+                        marginBottom: '24px', 
+                        flexWrap: 'wrap',
+                        background: '#1e1e1e',
+                        padding: '8px',
+                        borderRadius: '6px',
+                        border: '1px solid #3e3e42'
+                    }}>
                         <button 
                             onClick={() => setActiveTab('flags')} 
-                            className={activeTab === 'flags' ? '' : 'secondary'}
+                            style={{
+                                padding: '8px 16px',
+                                background: activeTab === 'flags' ? '#0e639c' : '#2d2d30',
+                                border: 'none',
+                                borderRadius: '4px',
+                                color: 'white',
+                                cursor: 'pointer',
+                                fontSize: '13px',
+                                fontWeight: activeTab === 'flags' ? 'bold' : 'normal',
+                                transition: 'all 0.2s'
+                            }}
                         >
                             Flags ({flags.size})
                         </button>
                         <button 
                             onClick={() => setActiveTab('users')} 
-                            className={activeTab === 'users' ? '' : 'secondary'}
+                            style={{
+                                padding: '8px 16px',
+                                background: activeTab === 'users' ? '#0e639c' : '#2d2d30',
+                                border: 'none',
+                                borderRadius: '4px',
+                                color: 'white',
+                                cursor: 'pointer',
+                                fontSize: '13px',
+                                fontWeight: activeTab === 'users' ? 'bold' : 'normal',
+                                transition: 'all 0.2s'
+                            }}
                         >
                             Users & Assets ({users.size})
                         </button>
                         <button 
                             onClick={handleRunValidation} 
-                            className={activeTab === 'validation' ? '' : 'secondary'}
-                            style={{background: '#0e639c'}}
+                            style={{
+                                padding: '8px 16px',
+                                background: activeTab === 'validation' ? '#0e639c' : '#2d2d30',
+                                border: 'none',
+                                borderRadius: '4px',
+                                color: 'white',
+                                cursor: 'pointer',
+                                fontSize: '13px',
+                                fontWeight: activeTab === 'validation' ? 'bold' : 'normal',
+                                transition: 'all 0.2s'
+                            }}
                         >
                             🔍 Run Validation
                         </button>
                         <button 
                             onClick={() => setActiveTab('search')} 
-                            className={activeTab === 'search' ? '' : 'secondary'}
+                            style={{
+                                padding: '8px 16px',
+                                background: activeTab === 'search' ? '#0e639c' : '#2d2d30',
+                                border: 'none',
+                                borderRadius: '4px',
+                                color: 'white',
+                                cursor: 'pointer',
+                                fontSize: '13px',
+                                fontWeight: activeTab === 'search' ? 'bold' : 'normal',
+                                transition: 'all 0.2s'
+                            }}
                         >
                             🔎 Search & Replace
                         </button>
                         <button 
                             onClick={() => setActiveTab('timeline')} 
-                            className={activeTab === 'timeline' ? '' : 'secondary'}
+                            style={{
+                                padding: '8px 16px',
+                                background: activeTab === 'timeline' ? '#0e639c' : '#2d2d30',
+                                border: 'none',
+                                borderRadius: '4px',
+                                color: 'white',
+                                cursor: 'pointer',
+                                fontSize: '13px',
+                                fontWeight: activeTab === 'timeline' ? 'bold' : 'normal',
+                                transition: 'all 0.2s'
+                            }}
                         >
                             📅 Timeline
                         </button>
                         <button 
                             onClick={() => setActiveTab('playthrough')} 
-                            className={activeTab === 'playthrough' ? '' : 'secondary'}
+                            style={{
+                                padding: '8px 16px',
+                                background: activeTab === 'playthrough' ? '#0e639c' : '#2d2d30',
+                                border: 'none',
+                                borderRadius: '4px',
+                                color: 'white',
+                                cursor: 'pointer',
+                                fontSize: '13px',
+                                fontWeight: activeTab === 'playthrough' ? 'bold' : 'normal',
+                                transition: 'all 0.2s'
+                            }}
                         >
                             🎮 Playthrough
                         </button>
                         <button 
                             onClick={() => setActiveTab('bulkedit')} 
-                            className={activeTab === 'bulkedit' ? '' : 'secondary'}
+                            style={{
+                                padding: '8px 16px',
+                                background: activeTab === 'bulkedit' ? '#0e639c' : '#2d2d30',
+                                border: 'none',
+                                borderRadius: '4px',
+                                color: 'white',
+                                cursor: 'pointer',
+                                fontSize: '13px',
+                                fontWeight: activeTab === 'bulkedit' ? 'bold' : 'normal',
+                                transition: 'all 0.2s'
+                            }}
                         >
                             ✏️ Bulk Edit
                         </button>
                         <button 
                             onClick={() => setActiveTab('assetbrowser')} 
-                            className={activeTab === 'assetbrowser' ? '' : 'secondary'}
+                            style={{
+                                padding: '8px 16px',
+                                background: activeTab === 'assetbrowser' ? '#0e639c' : '#2d2d30',
+                                border: 'none',
+                                borderRadius: '4px',
+                                color: 'white',
+                                cursor: 'pointer',
+                                fontSize: '13px',
+                                fontWeight: activeTab === 'assetbrowser' ? 'bold' : 'normal',
+                                transition: 'all 0.2s'
+                            }}
                         >
                             🎨 Asset Browser
                         </button>
                         <button 
                             onClick={() => setActiveTab('userlibrary')} 
-                            className={activeTab === 'userlibrary' ? '' : 'secondary'}
+                            style={{
+                                padding: '8px 16px',
+                                background: activeTab === 'userlibrary' ? '#0e639c' : '#2d2d30',
+                                border: 'none',
+                                borderRadius: '4px',
+                                color: 'white',
+                                cursor: 'pointer',
+                                fontSize: '13px',
+                                fontWeight: activeTab === 'userlibrary' ? 'bold' : 'normal',
+                                transition: 'all 0.2s'
+                            }}
                         >
                             👥 User Library
                         </button>
                         <button 
                             onClick={() => setActiveTab('snapshots')} 
-                            className={activeTab === 'snapshots' ? '' : 'secondary'}
+                            style={{
+                                padding: '8px 16px',
+                                background: activeTab === 'snapshots' ? '#0e639c' : '#2d2d30',
+                                border: 'none',
+                                borderRadius: '4px',
+                                color: 'white',
+                                cursor: 'pointer',
+                                fontSize: '13px',
+                                fontWeight: activeTab === 'snapshots' ? 'bold' : 'normal',
+                                transition: 'all 0.2s'
+                            }}
                         >
                             📸 Snapshots
                         </button>
@@ -5773,7 +6312,7 @@
             );
         }
 
-        function ForumPreviewPanel({ data, simulatedDay, setSimulatedDay, simulatedFlags, setSimulatedFlags }) {
+        function ForumPreviewPanel({ data, simulatedDay, setSimulatedDay, simulatedFlags, setSimulatedFlags, setSelectedItem, setView }) {
             const [expandedCategories, setExpandedCategories] = useState(new Set());
             const [selectedThread, setSelectedThread] = useState(null); // {catIndex, threadIndex}
 
@@ -5961,12 +6500,36 @@
                                             borderLeft: post.type === 'reply' ? '4px solid #ce9178' : post.type === 'alert' ? '4px solid #dcdcaa' : '4px solid #9cdcfe',
                                             width: '100%'
                                         }}>
-                                            <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '12px'}}>
+                                            <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '12px', alignItems: 'center'}}>
                                                 <div>
                                                     <strong style={{color: '#9cdcfe', fontSize: '16px'}}>{post.user_name}</strong>
                                                     <span style={{marginLeft: '10px', fontSize: '13px', color: '#858585'}}>{post.user_rank}</span>
                                                 </div>
-                                                <span style={{fontSize: '12px', color: '#858585'}}>TS: {post.timestamp}</span>
+                                                <div style={{display: 'flex', gap: '12px', alignItems: 'center'}}>
+                                                    <span style={{fontSize: '12px', color: '#858585'}}>TS: {post.timestamp}</span>
+                                                    <button
+                                                        onClick={() => {
+                                                            setSelectedItem({
+                                                                type: 'post',
+                                                                path: [selectedThread.catIndex, selectedThread.threadIndex, postIdx]
+                                                            });
+                                                            setView('tree');
+                                                        }}
+                                                        style={{
+                                                            padding: '4px 12px',
+                                                            background: '#0e639c',
+                                                            border: 'none',
+                                                            borderRadius: '4px',
+                                                            color: 'white',
+                                                            cursor: 'pointer',
+                                                            fontSize: '12px',
+                                                            fontWeight: '500'
+                                                        }}
+                                                        title="Edit this post in tree view"
+                                                    >
+                                                        ✏️ Edit
+                                                    </button>
+                                                </div>
                                             </div>
 
                                             {post.quote_text && (
@@ -6188,6 +6751,105 @@
                                 })}
                             </tbody>
                         </table>
+                    </div>
+                </div>
+            );
+        }
+
+        function KeyboardShortcutsModal({ onClose }) {
+            return (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: 'rgba(0, 0, 0, 0.7)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 10000
+                }} onClick={onClose}>
+                    <div style={{
+                        background: '#1e1e1e',
+                        padding: '30px',
+                        borderRadius: '8px',
+                        maxWidth: '600px',
+                        width: '90%',
+                        maxHeight: '80vh',
+                        overflow: 'auto',
+                        border: '1px solid #3e3e42'
+                    }} onClick={(e) => e.stopPropagation()}>
+                        <div style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            marginBottom: '20px'
+                        }}>
+                            <h2 style={{color: '#4ec9b0', margin: 0}}>⌨️ Keyboard Shortcuts</h2>
+                            <button onClick={onClose} style={{
+                                background: 'transparent',
+                                border: 'none',
+                                color: '#858585',
+                                fontSize: '24px',
+                                cursor: 'pointer',
+                                padding: '0 8px'
+                            }}>×</button>
+                        </div>
+
+                        <div style={{fontSize: '14px', lineHeight: '1.8'}}>
+                            <div style={{marginBottom: '24px'}}>
+                                <h3 style={{color: '#dcdcaa', fontSize: '16px', marginBottom: '12px'}}>Editing</h3>
+                                <table style={{width: '100%', borderCollapse: 'collapse'}}>
+                                    <tbody>
+                                        <tr>
+                                            <td style={{padding: '8px 0', color: '#9cdcfe'}}>
+                                                <kbd style={{background: '#2d2d30', padding: '4px 8px', borderRadius: '3px', border: '1px solid #3e3e42'}}>Ctrl</kbd> + 
+                                                <kbd style={{background: '#2d2d30', padding: '4px 8px', borderRadius: '3px', border: '1px solid #3e3e42', marginLeft: '4px'}}>Z</kbd>
+                                            </td>
+                                            <td style={{padding: '8px 0', color: '#d4d4d4'}}>Undo</td>
+                                        </tr>
+                                        <tr>
+                                            <td style={{padding: '8px 0', color: '#9cdcfe'}}>
+                                                <kbd style={{background: '#2d2d30', padding: '4px 8px', borderRadius: '3px', border: '1px solid #3e3e42'}}>Ctrl</kbd> + 
+                                                <kbd style={{background: '#2d2d30', padding: '4px 8px', borderRadius: '3px', border: '1px solid #3e3e42', marginLeft: '4px'}}>Y</kbd>
+                                            </td>
+                                            <td style={{padding: '8px 0', color: '#d4d4d4'}}>Redo</td>
+                                        </tr>
+                                        <tr>
+                                            <td style={{padding: '8px 0', color: '#9cdcfe'}}>
+                                                <kbd style={{background: '#2d2d30', padding: '4px 8px', borderRadius: '3px', border: '1px solid #3e3e42'}}>Ctrl</kbd> + 
+                                                <kbd style={{background: '#2d2d30', padding: '4px 8px', borderRadius: '3px', border: '1px solid #3e3e42', marginLeft: '4px'}}>Shift</kbd> + 
+                                                <kbd style={{background: '#2d2d30', padding: '4px 8px', borderRadius: '3px', border: '1px solid #3e3e42', marginLeft: '4px'}}>Z</kbd>
+                                            </td>
+                                            <td style={{padding: '8px 0', color: '#d4d4d4'}}>Redo (alternative)</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div style={{
+                                background: '#2d3d2d',
+                                padding: '16px',
+                                borderRadius: '6px',
+                                marginTop: '20px'
+                            }}>
+                                <strong style={{color: '#4ec9b0'}}>💡 Tip:</strong>
+                                <p style={{margin: '8px 0 0 0', color: '#d4d4d4'}}>
+                                    On Mac, use <kbd style={{background: '#1e1e1e', padding: '2px 6px', borderRadius: '3px'}}>Cmd</kbd> instead of <kbd style={{background: '#1e1e1e', padding: '2px 6px', borderRadius: '3px'}}>Ctrl</kbd>
+                                </p>
+                            </div>
+
+                            <div style={{
+                                marginTop: '24px',
+                                paddingTop: '20px',
+                                borderTop: '1px solid #3e3e42'
+                            }}>
+                                <p style={{color: '#858585', fontSize: '12px', margin: 0}}>
+                                    More keyboard shortcuts coming in future updates!
+                                </p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             );
