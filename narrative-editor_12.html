@@ -1286,7 +1286,7 @@
                             />
                         )}
                         {view === 'screenplay' && (
-                            <ScreenplayPanel data={data} setSelectedItem={setSelectedItem} />
+                            <ScreenplayPanel data={data} setData={setData} setSelectedItem={setSelectedItem} userLibrary={userLibrary} showMessage={showMessage} />
                         )}
                         {view === 'json' && (
                             <JSONPanel data={data} setData={setData} showMessage={showMessage} />
@@ -2371,8 +2371,26 @@
             const [validationIssues, setValidationIssues] = useState([]);
             const [simulatedFlags, setSimulatedFlags] = useState(new Set());
             const [showFlagDebugger, setShowFlagDebugger] = useState(false);
-            const [layoutDirection, setLayoutDirection] = useState('horizontal'); // 'horizontal' or 'vertical'
+            const [layoutDirection, setLayoutDirection] = useState(() => {
+                // Load saved layout preference
+                try {
+                    const saved = localStorage.getItem('narrative-editor-layout');
+                    return saved || 'horizontal';
+                } catch (e) {
+                    return 'horizontal';
+                }
+            });
             const [contextMenu, setContextMenu] = useState(null); // { x, y, nodeId, nodeType, path }
+            const reactFlowInstance = React.useRef(null);
+
+            // Save layout preference when it changes
+            useEffect(() => {
+                try {
+                    localStorage.setItem('narrative-editor-layout', layoutDirection);
+                } catch (e) {
+                    console.error('Failed to save layout preference:', e);
+                }
+            }, [layoutDirection]);
 
             // Close context menu when clicking elsewhere
             useEffect(() => {
@@ -2785,6 +2803,16 @@
                 setEdges(newEdges);
             }, [data, collapsedBranches, validationIssues, simulatedFlags, layoutDirection]);
 
+            // Fit view when layout direction changes
+            useEffect(() => {
+                if (reactFlowInstance.current) {
+                    // Use setTimeout to ensure nodes are positioned before fitting
+                    setTimeout(() => {
+                        reactFlowInstance.current.fitView({ padding: 0.2, duration: 400 });
+                    }, 50);
+                }
+            }, [layoutDirection]);
+
             // Apply highlighting when a flag is selected
             useEffect(() => {
                 if (!highlightedFlag) {
@@ -3064,6 +3092,9 @@
                         onNodeClick={onNodeClick}
                         onNodeDoubleClick={onNodeDoubleClickHandler}
                         onNodeContextMenu={onNodeContextMenu}
+                        onInit={(instance) => {
+                            reactFlowInstance.current = instance;
+                        }}
                         fitView
                         attributionPosition="bottom-left"
                     >
@@ -3190,8 +3221,10 @@
                 </div>
             );
         }
-        function ScreenplayPanel({ data, setSelectedItem }) {
+        function ScreenplayPanel({ data, setData, setSelectedItem, userLibrary, showMessage }) {
             const [selectedThread, setSelectedThread] = useState(null);
+            const [editingPost, setEditingPost] = useState(null); // { catIndex, threadIndex, postIndex }
+            const [editForm, setEditForm] = useState(null);
 
             // Get all threads from all categories
             const getAllThreads = () => {
@@ -3211,19 +3244,214 @@
             const threads = getAllThreads();
             const currentThread = selectedThread || (threads.length > 0 ? threads[0] : null);
 
+            // Start editing a post
+            const startEditing = (catIndex, threadIndex, postIndex) => {
+                const post = data[catIndex].threads[threadIndex].posts[postIndex];
+                setEditingPost({ catIndex, threadIndex, postIndex });
+                setEditForm({
+                    user_name: post.user_name,
+                    user_rank: post.user_rank || '',
+                    body: post.body
+                });
+            };
+
+            // Save edited post
+            const saveEdit = () => {
+                if (!editingPost || !editForm) return;
+                
+                const { catIndex, threadIndex, postIndex } = editingPost;
+                const newData = JSON.parse(JSON.stringify(data));
+                newData[catIndex].threads[threadIndex].posts[postIndex] = {
+                    ...newData[catIndex].threads[threadIndex].posts[postIndex],
+                    user_name: editForm.user_name,
+                    user_rank: editForm.user_rank,
+                    body: editForm.body
+                };
+                
+                setData(newData);
+                setEditingPost(null);
+                setEditForm(null);
+                showMessage('Post updated', 'success');
+            };
+
+            // Cancel editing
+            const cancelEdit = () => {
+                setEditingPost(null);
+                setEditForm(null);
+            };
+
+            // Select user from library
+            const selectUser = (userId) => {
+                const user = userLibrary.find(u => u.id === userId);
+                if (user) {
+                    setEditForm({
+                        ...editForm,
+                        user_name: user.name,
+                        user_rank: user.rank
+                    });
+                }
+            };
+
             // Render a post in screenplay format
             const renderPost = (post, postIndex) => {
                 const isReply = post.type === 'reply';
                 const isAlert = post.type === 'alert';
+                const isEditing = editingPost && 
+                    editingPost.catIndex === currentThread.path[0] && 
+                    editingPost.threadIndex === currentThread.path[1] && 
+                    editingPost.postIndex === postIndex;
 
+                // Edit mode
+                if (isEditing) {
+                    return (
+                        <div 
+                            key={postIndex}
+                            style={{
+                                marginBottom: '24px',
+                                padding: '20px',
+                                background: '#2d3d2d',
+                                borderRadius: '6px',
+                                border: '2px solid #0e639c'
+                            }}
+                        >
+                            <h4 style={{color: '#0e639c', marginBottom: '16px'}}>✏️ Editing Post</h4>
+                            
+                            {/* User picker */}
+                            {userLibrary && userLibrary.length > 0 && (
+                                <div style={{marginBottom: '12px'}}>
+                                    <label style={{display: 'block', marginBottom: '4px', fontSize: '12px', color: '#858585'}}>
+                                        Quick Select User:
+                                    </label>
+                                    <select 
+                                        onChange={(e) => selectUser(e.target.value)}
+                                        style={{
+                                            width: '100%',
+                                            padding: '8px',
+                                            background: '#1e1e1e',
+                                            border: '1px solid #3e3e42',
+                                            color: 'white',
+                                            borderRadius: '4px'
+                                        }}
+                                    >
+                                        <option value="">-- Select from library --</option>
+                                        {userLibrary.filter(u => u.status === 'active').map(user => (
+                                            <option key={user.id} value={user.id}>
+                                                {user.name} {user.rank ? `(${user.rank})` : ''}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                            )}
+                            
+                            <div style={{marginBottom: '12px'}}>
+                                <label style={{display: 'block', marginBottom: '4px', fontSize: '12px', color: '#858585'}}>
+                                    User Name:
+                                </label>
+                                <input
+                                    type="text"
+                                    value={editForm.user_name}
+                                    onChange={(e) => setEditForm({...editForm, user_name: e.target.value})}
+                                    style={{
+                                        width: '100%',
+                                        padding: '8px',
+                                        background: '#1e1e1e',
+                                        border: '1px solid #3e3e42',
+                                        color: 'white',
+                                        borderRadius: '4px'
+                                    }}
+                                />
+                            </div>
+                            
+                            <div style={{marginBottom: '12px'}}>
+                                <label style={{display: 'block', marginBottom: '4px', fontSize: '12px', color: '#858585'}}>
+                                    User Rank:
+                                </label>
+                                <input
+                                    type="text"
+                                    value={editForm.user_rank}
+                                    onChange={(e) => setEditForm({...editForm, user_rank: e.target.value})}
+                                    style={{
+                                        width: '100%',
+                                        padding: '8px',
+                                        background: '#1e1e1e',
+                                        border: '1px solid #3e3e42',
+                                        color: 'white',
+                                        borderRadius: '4px'
+                                    }}
+                                />
+                            </div>
+                            
+                            <div style={{marginBottom: '16px'}}>
+                                <label style={{display: 'block', marginBottom: '4px', fontSize: '12px', color: '#858585'}}>
+                                    Post Body:
+                                </label>
+                                <textarea
+                                    value={editForm.body}
+                                    onChange={(e) => setEditForm({...editForm, body: e.target.value})}
+                                    style={{
+                                        width: '100%',
+                                        padding: '8px',
+                                        background: '#1e1e1e',
+                                        border: '1px solid #3e3e42',
+                                        color: 'white',
+                                        borderRadius: '4px',
+                                        minHeight: '120px',
+                                        fontFamily: 'inherit',
+                                        fontSize: '14px'
+                                    }}
+                                />
+                            </div>
+                            
+                            <div style={{display: 'flex', gap: '8px'}}>
+                                <button
+                                    onClick={saveEdit}
+                                    style={{
+                                        padding: '8px 16px',
+                                        background: '#0e639c',
+                                        border: 'none',
+                                        borderRadius: '4px',
+                                        color: 'white',
+                                        cursor: 'pointer',
+                                        fontWeight: 'bold'
+                                    }}
+                                >
+                                    ✓ Save Changes
+                                </button>
+                                <button
+                                    onClick={cancelEdit}
+                                    style={{
+                                        padding: '8px 16px',
+                                        background: '#3e3e42',
+                                        border: 'none',
+                                        borderRadius: '4px',
+                                        color: 'white',
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+                    );
+                }
+
+                // View mode
                 return (
                     <div 
                         key={postIndex}
                         style={{
                             marginBottom: '24px',
                             paddingLeft: isReply ? '40px' : '0',
-                            borderLeft: isReply ? '3px solid #ce9178' : 'none'
+                            borderLeft: isReply ? '3px solid #ce9178' : 'none',
+                            cursor: 'pointer',
+                            padding: '12px',
+                            borderRadius: '6px',
+                            transition: 'background 0.2s'
                         }}
+                        onClick={() => startEditing(currentThread.path[0], currentThread.path[1], postIndex)}
+                        onMouseEnter={(e) => e.currentTarget.style.background = '#2d2d30'}
+                        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                        title="Click to edit"
                     >
                         {/* Quote (for replies) */}
                         {isReply && post.quote_user && (
@@ -3362,12 +3590,14 @@
             return (
                 <div style={{
                     display: 'flex',
+                    flex: 1,
                     height: '100%',
                     overflow: 'hidden'
                 }}>
                     {/* Thread selector sidebar */}
                     <div style={{
                         width: '280px',
+                        flexShrink: 0,
                         borderRight: '1px solid #3e3e42',
                         overflowY: 'auto',
                         background: '#1e1e1e',
