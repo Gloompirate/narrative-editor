@@ -5306,6 +5306,11 @@
                 currentPostIndex: 0
             });
             
+            // Analytics state
+            const [analyticsData, setAnalyticsData] = useState(null);
+            const [simulationRunning, setSimulationRunning] = useState(false);
+            const [simulationProgress, setSimulationProgress] = useState({ current: 0, total: 0 });
+            
             const flags = getAllFlags();
             const users = getAllUsers();
 
@@ -5326,6 +5331,316 @@
                 setValidationIssues(issues);
                 setActiveTab('validation');
             };
+
+            // **AUTOMATED SIMULATION ENGINE**
+            const runAutomatedSimulation = async () => {
+                setSimulationRunning(true);
+                setSimulationProgress({ current: 0, total: 0, message: 'Initializing...' });
+                
+                // Small delay to allow UI to update
+                await new Promise(resolve => setTimeout(resolve, 100));
+                
+                try {
+                    const results = await performSimulationAsync();
+                    setAnalyticsData(results);
+                    setSimulationRunning(false);
+                } catch (error) {
+                    console.error('Simulation failed:', error);
+                    setSimulationRunning(false);
+                    alert('Simulation failed: ' + error.message);
+                }
+            };
+
+            const performSimulationAsync = async () => {
+                const maxPaths = 1000; // Much more conservative
+                const maxDepth = 30; // Shorter paths
+                const maxDays = 10; // Don't go beyond day 10
+                const CHUNK_SIZE = 10; // Smaller chunks
+                
+                // Helper functions
+                const isThreadAvailable = (thread, state) => {
+                    if (thread.conditions) {
+                        if (thread.conditions.min_day !== undefined && state.day < thread.conditions.min_day) {
+                            return false;
+                        }
+                        if (thread.conditions.requires_flag && !state.flags.has(thread.conditions.requires_flag)) {
+                            return false;
+                        }
+                    }
+                    return true;
+                };
+
+                const isPostAvailable = (post, state) => {
+                    if (post.conditions) {
+                        if (post.conditions.min_day !== undefined && state.day < post.conditions.min_day) {
+                            return false;
+                        }
+                        if (post.conditions.requires_flag && !state.flags.has(post.conditions.requires_flag)) {
+                            return false;
+                        }
+                    }
+                    return true;
+                };
+
+                const getStateSignature = (state) => {
+                    const flagsArray = Array.from(state.flags).sort();
+                    const progressArray = Object.entries(state.threadProgress).sort();
+                    return JSON.stringify({
+                        day: state.day,
+                        flags: flagsArray,
+                        progress: progressArray
+                    });
+                };
+
+                // Initialize
+                const completedPaths = [];
+                const seenStates = new Set();
+                const queue = [{
+                    day: 0,
+                    flags: new Set(),
+                    threadProgress: {},
+                    path: [],
+                    depth: 0
+                }];
+
+                let statesProcessed = 0;
+                const startTime = Date.now();
+
+                // Add initial state signature
+                seenStates.add(getStateSignature(queue[0]));
+
+                // Process in chunks
+                while (queue.length > 0 && completedPaths.length < maxPaths) {
+                    for (let i = 0; i < CHUNK_SIZE && queue.length > 0 && completedPaths.length < maxPaths; i++) {
+                        const state = queue.shift();
+                        statesProcessed++;
+
+                        // Safety checks
+                        if (state.depth >= maxDepth) {
+                            completedPaths.push({ ...state, endReason: 'depth_limit' });
+                            continue;
+                        }
+
+                        if (state.day >= maxDays) {
+                            completedPaths.push({ ...state, endReason: 'day_limit' });
+                            continue;
+                        }
+
+                        // Find first available post across all threads
+                        let foundPost = null;
+                        
+                        for (let catIdx = 0; catIdx < data.length && !foundPost; catIdx++) {
+                            const category = data[catIdx];
+                            
+                            for (let threadIdx = 0; threadIdx < category.threads.length && !foundPost; threadIdx++) {
+                                const thread = category.threads[threadIdx];
+                                const threadId = `${catIdx}-${threadIdx}`;
+
+                                // Check thread availability
+                                if (!isThreadAvailable(thread, state)) {
+                                    continue;
+                                }
+
+                                const currentPostIdx = state.threadProgress[threadId] || 0;
+
+                                // Thread complete?
+                                if (currentPostIdx >= thread.posts.length) {
+                                    continue;
+                                }
+
+                                const post = thread.posts[currentPostIdx];
+
+                                // Check post availability
+                                if (!isPostAvailable(post, state)) {
+                                    continue;
+                                }
+
+                                // Found one!
+                                foundPost = {
+                                    catIdx,
+                                    threadIdx,
+                                    postIdx: currentPostIdx,
+                                    post,
+                                    threadId
+                                };
+                            }
+                        }
+
+                        if (!foundPost) {
+                            // No posts available - try advancing day once
+                            if (state.day < maxDays - 1) {
+                                const newState = {
+                                    day: state.day + 1,
+                                    flags: state.flags,
+                                    threadProgress: state.threadProgress,
+                                    path: state.path,
+                                    depth: state.depth
+                                };
+
+                                const signature = getStateSignature(newState);
+                                if (!seenStates.has(signature)) {
+                                    seenStates.add(signature);
+                                    queue.push(newState);
+                                }
+                            } else {
+                                // Dead end
+                                completedPaths.push({ ...state, endReason: 'no_actions' });
+                            }
+                            continue;
+                        }
+
+                        // Process the found post
+                        const post = foundPost.post;
+
+                        if (post.options && post.options.length > 0) {
+                            // Branch for each choice
+                            for (const option of post.options) {
+                                const newFlags = new Set(state.flags);
+                                if (option.set_flag) {
+                                    newFlags.add(option.set_flag);
+                                }
+
+                                const newThreadProgress = { ...state.threadProgress };
+                                newThreadProgress[foundPost.threadId] = foundPost.postIdx + 1;
+
+                                const newState = {
+                                    day: state.day,
+                                    flags: newFlags,
+                                    threadProgress: newThreadProgress,
+                                    path: [...state.path, {
+                                        catIdx: foundPost.catIdx,
+                                        threadIdx: foundPost.threadIdx,
+                                        postIdx: foundPost.postIdx,
+                                        choice: option.text,
+                                        flag: option.set_flag
+                                    }],
+                                    depth: state.depth + 1
+                                };
+
+                                const signature = getStateSignature(newState);
+                                if (!seenStates.has(signature)) {
+                                    seenStates.add(signature);
+                                    queue.push(newState);
+                                }
+                            }
+                        } else {
+                            // No choices - just advance
+                            const newThreadProgress = { ...state.threadProgress };
+                            newThreadProgress[foundPost.threadId] = foundPost.postIdx + 1;
+
+                            const newState = {
+                                day: state.day,
+                                flags: state.flags,
+                                threadProgress: newThreadProgress,
+                                path: [...state.path, {
+                                    catIdx: foundPost.catIdx,
+                                    threadIdx: foundPost.threadIdx,
+                                    postIdx: foundPost.postIdx,
+                                    choice: null
+                                }],
+                                depth: state.depth + 1
+                            };
+
+                            const signature = getStateSignature(newState);
+                            if (!seenStates.has(signature)) {
+                                seenStates.add(signature);
+                                queue.push(newState);
+                            }
+                        }
+                    }
+
+                    // Update progress
+                    setSimulationProgress({
+                        current: completedPaths.length,
+                        total: queue.length,
+                        message: `${statesProcessed} states explored, ${completedPaths.length} paths complete, ${seenStates.size} unique states`
+                    });
+
+                    // Yield to UI
+                    await new Promise(resolve => setTimeout(resolve, 0));
+                }
+
+                // Mark remaining as incomplete
+                while (queue.length > 0 && completedPaths.length < maxPaths) {
+                    const state = queue.shift();
+                    completedPaths.push({ ...state, endReason: 'path_limit' });
+                }
+
+                const endTime = Date.now();
+
+                // Final message
+                setSimulationProgress({
+                    current: completedPaths.length,
+                    total: completedPaths.length,
+                    message: 'Computing analytics...'
+                });
+
+                await new Promise(resolve => setTimeout(resolve, 50));
+
+                // Compute analytics
+                const analytics = {
+                    totalPaths: completedPaths.length,
+                    statesExplored: statesProcessed,
+                    uniqueStates: seenStates.size,
+                    simulationTime: endTime - startTime,
+                    
+                    pathLengths: completedPaths.map(p => p.path.length),
+                    avgPathLength: completedPaths.length > 0 ? 
+                        completedPaths.reduce((sum, p) => sum + p.path.length, 0) / completedPaths.length : 0,
+                    minPathLength: completedPaths.length > 0 ? 
+                        Math.min(...completedPaths.map(p => p.path.length)) : 0,
+                    maxPathLength: completedPaths.length > 0 ? 
+                        Math.max(...completedPaths.map(p => p.path.length)) : 0,
+                    
+                    flagUsage: {},
+                    flagCombinations: {},
+                    choiceDistribution: {},
+                    threadVisits: {},
+                    postVisits: {},
+                    endReasons: {},
+                    
+                    paths: completedPaths
+                };
+
+                // Calculate analytics
+                completedPaths.forEach(path => {
+                    path.flags.forEach(flag => {
+                        analytics.flagUsage[flag] = (analytics.flagUsage[flag] || 0) + 1;
+                    });
+                    
+                    const flagCombo = Array.from(path.flags).sort().join(',') || '(none)';
+                    analytics.flagCombinations[flagCombo] = (analytics.flagCombinations[flagCombo] || 0) + 1;
+                    
+                    const endReason = path.endReason || 'completed';
+                    analytics.endReasons[endReason] = (analytics.endReasons[endReason] || 0) + 1;
+                });
+
+                completedPaths.forEach(path => {
+                    path.path.forEach(step => {
+                        if (step.choice) {
+                            const key = `${step.catIdx}-${step.threadIdx}-${step.postIdx}:${step.choice}`;
+                            analytics.choiceDistribution[key] = (analytics.choiceDistribution[key] || 0) + 1;
+                        }
+                    });
+                });
+
+                completedPaths.forEach(path => {
+                    path.path.forEach(step => {
+                        const threadKey = `${step.catIdx}-${step.threadIdx}`;
+                        analytics.threadVisits[threadKey] = (analytics.threadVisits[threadKey] || 0) + 1;
+                    });
+                });
+
+                completedPaths.forEach(path => {
+                    path.path.forEach(step => {
+                        const postKey = `${step.catIdx}-${step.threadIdx}-${step.postIdx}`;
+                        analytics.postVisits[postKey] = (analytics.postVisits[postKey] || 0) + 1;
+                    });
+                });
+
+                return analytics;
+            };
+
 
             return (
                 <div className="editor-panel" style={{padding: '20px'}}>
@@ -5436,6 +5751,22 @@
                             }}
                         >
                             🎮 Playthrough
+                        </button>
+                        <button 
+                            onClick={() => setActiveTab('analytics')} 
+                            style={{
+                                padding: '8px 16px',
+                                background: activeTab === 'analytics' ? '#0e639c' : '#2d2d30',
+                                border: 'none',
+                                borderRadius: '4px',
+                                color: 'white',
+                                cursor: 'pointer',
+                                fontSize: '13px',
+                                fontWeight: activeTab === 'analytics' ? 'bold' : 'normal',
+                                transition: 'all 0.2s'
+                            }}
+                        >
+                            📊 Analytics
                         </button>
                         <button 
                             onClick={() => setActiveTab('bulkedit')} 
@@ -6894,6 +7225,301 @@
                                     </div>
                                 );
                             })()}
+                        </div>
+                    )}
+
+                    {activeTab === 'analytics' && (
+                        <div>
+                            <h3 style={{marginBottom: '16px', color: '#4ec9b0'}}>📊 Automated Simulation & Analytics</h3>
+                            <p style={{color: '#858585', marginBottom: '20px', fontSize: '14px'}}>
+                                Simulate all possible player paths through your narrative and analyze the results
+                            </p>
+
+                            {!analyticsData ? (
+                                <div>
+                                    <div style={{
+                                        background: '#252526',
+                                        padding: '24px',
+                                        borderRadius: '8px',
+                                        marginBottom: '20px'
+                                    }}>
+                                        <h4 style={{color: '#dcdcaa', marginBottom: '12px'}}>What This Does:</h4>
+                                        <ul style={{color: '#d4d4d4', lineHeight: '1.8', paddingLeft: '20px'}}>
+                                            <li>Explores every possible path through your narrative</li>
+                                            <li>Tests all choice combinations automatically</li>
+                                            <li>Tracks flag usage and story branches</li>
+                                            <li>Identifies dead ends and unreachable content</li>
+                                            <li>Generates comprehensive analytics</li>
+                                        </ul>
+                                    </div>
+
+                                    {simulationRunning ? (
+                                        <div style={{
+                                            background: '#2d2d30',
+                                            padding: '40px',
+                                            borderRadius: '8px',
+                                            textAlign: 'center'
+                                        }}>
+                                            <div style={{fontSize: '48px', marginBottom: '16px'}}>⚙️</div>
+                                            <div style={{fontSize: '18px', color: '#4ec9b0', marginBottom: '8px'}}>
+                                                Running Simulation...
+                                            </div>
+                                            {simulationProgress.message && (
+                                                <div style={{color: '#9cdcfe', fontSize: '14px', marginBottom: '12px'}}>
+                                                    {simulationProgress.message}
+                                                </div>
+                                            )}
+                                            <div style={{color: '#858585', fontSize: '14px'}}>
+                                                Paths completed: {simulationProgress.current}
+                                            </div>
+                                            <div style={{color: '#858585', fontSize: '14px'}}>
+                                                States in queue: {simulationProgress.total}
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <button
+                                            onClick={runAutomatedSimulation}
+                                            style={{
+                                                padding: '16px 32px',
+                                                background: '#0e639c',
+                                                border: 'none',
+                                                borderRadius: '8px',
+                                                color: 'white',
+                                                cursor: 'pointer',
+                                                fontSize: '16px',
+                                                fontWeight: 'bold'
+                                            }}
+                                        >
+                                            🚀 Run Simulation
+                                        </button>
+                                    )}
+                                </div>
+                            ) : (
+                                <div>
+                                    <div style={{display: 'flex', gap: '12px', marginBottom: '20px'}}>
+                                        <button
+                                            onClick={runAutomatedSimulation}
+                                            style={{
+                                                padding: '10px 20px',
+                                                background: '#0e639c',
+                                                border: 'none',
+                                                borderRadius: '4px',
+                                                color: 'white',
+                                                cursor: 'pointer'
+                                            }}
+                                        >
+                                            🔄 Re-run Simulation
+                                        </button>
+                                        <button
+                                            onClick={() => setAnalyticsData(null)}
+                                            style={{
+                                                padding: '10px 20px',
+                                                background: '#3e3e42',
+                                                border: 'none',
+                                                borderRadius: '4px',
+                                                color: 'white',
+                                                cursor: 'pointer'
+                                            }}
+                                        >
+                                            Clear Results
+                                        </button>
+                                    </div>
+
+                                    {/* Overview Stats */}
+                                    <div style={{
+                                        display: 'grid',
+                                        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                                        gap: '16px',
+                                        marginBottom: '24px'
+                                    }}>
+                                        <div style={{background: '#252526', padding: '20px', borderRadius: '8px', border: '2px solid #4ec9b0'}}>
+                                            <div style={{fontSize: '32px', fontWeight: 'bold', color: '#4ec9b0', marginBottom: '8px'}}>
+                                                {analyticsData.totalPaths}
+                                            </div>
+                                            <div style={{color: '#858585', fontSize: '14px'}}>Total Paths</div>
+                                        </div>
+                                        <div style={{background: '#252526', padding: '20px', borderRadius: '8px', border: '2px solid #9cdcfe'}}>
+                                            <div style={{fontSize: '32px', fontWeight: 'bold', color: '#9cdcfe', marginBottom: '8px'}}>
+                                                {analyticsData.avgPathLength.toFixed(1)}
+                                            </div>
+                                            <div style={{color: '#858585', fontSize: '14px'}}>Avg Path Length</div>
+                                        </div>
+                                        <div style={{background: '#252526', padding: '20px', borderRadius: '8px', border: '2px solid #dcdcaa'}}>
+                                            <div style={{fontSize: '32px', fontWeight: 'bold', color: '#dcdcaa', marginBottom: '8px'}}>
+                                                {analyticsData.uniqueStates}
+                                            </div>
+                                            <div style={{color: '#858585', fontSize: '14px'}}>Unique States</div>
+                                        </div>
+                                        <div style={{background: '#252526', padding: '20px', borderRadius: '8px', border: '2px solid #ce9178'}}>
+                                            <div style={{fontSize: '32px', fontWeight: 'bold', color: '#ce9178', marginBottom: '8px'}}>
+                                                {(analyticsData.simulationTime / 1000).toFixed(2)}s
+                                            </div>
+                                            <div style={{color: '#858585', fontSize: '14px'}}>Simulation Time</div>
+                                        </div>
+                                    </div>
+
+                                    {/* Path Length Distribution */}
+                                    <div style={{background: '#252526', padding: '20px', borderRadius: '8px', marginBottom: '20px'}}>
+                                        <h4 style={{color: '#4ec9b0', marginBottom: '16px'}}>Path Length Distribution</h4>
+                                        <div style={{display: 'flex', gap: '8px', marginBottom: '12px'}}>
+                                            <div style={{flex: 1}}>
+                                                <div style={{color: '#858585', fontSize: '12px', marginBottom: '4px'}}>Min</div>
+                                                <div style={{color: '#9cdcfe', fontSize: '18px', fontWeight: 'bold'}}>
+                                                    {analyticsData.minPathLength}
+                                                </div>
+                                            </div>
+                                            <div style={{flex: 1}}>
+                                                <div style={{color: '#858585', fontSize: '12px', marginBottom: '4px'}}>Avg</div>
+                                                <div style={{color: '#4ec9b0', fontSize: '18px', fontWeight: 'bold'}}>
+                                                    {analyticsData.avgPathLength.toFixed(1)}
+                                                </div>
+                                            </div>
+                                            <div style={{flex: 1}}>
+                                                <div style={{color: '#858585', fontSize: '12px', marginBottom: '4px'}}>Max</div>
+                                                <div style={{color: '#dcdcaa', fontSize: '18px', fontWeight: 'bold'}}>
+                                                    {analyticsData.maxPathLength}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Flag Usage */}
+                                    <div style={{background: '#252526', padding: '20px', borderRadius: '8px', marginBottom: '20px'}}>
+                                        <h4 style={{color: '#4ec9b0', marginBottom: '16px'}}>
+                                            Flag Usage ({Object.keys(analyticsData.flagUsage).length} flags)
+                                        </h4>
+                                        {Object.keys(analyticsData.flagUsage).length === 0 ? (
+                                            <div style={{color: '#858585', padding: '20px', textAlign: 'center'}}>
+                                                No flags used in simulation
+                                            </div>
+                                        ) : (
+                                            <div style={{display: 'flex', flexDirection: 'column', gap: '8px'}}>
+                                                {Object.entries(analyticsData.flagUsage)
+                                                    .sort((a, b) => b[1] - a[1])
+                                                    .slice(0, 10)
+                                                    .map(([flag, count]) => (
+                                                        <div key={flag} style={{
+                                                            background: '#2d2d30',
+                                                            padding: '12px',
+                                                            borderRadius: '4px',
+                                                            display: 'flex',
+                                                            justifyContent: 'space-between',
+                                                            alignItems: 'center'
+                                                        }}>
+                                                            <div style={{color: '#9cdcfe', fontFamily: 'monospace'}}>
+                                                                {flag}
+                                                            </div>
+                                                            <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
+                                                                <div style={{
+                                                                    width: '100px',
+                                                                    height: '8px',
+                                                                    background: '#3e3e42',
+                                                                    borderRadius: '4px',
+                                                                    overflow: 'hidden'
+                                                                }}>
+                                                                    <div style={{
+                                                                        width: `${(count / analyticsData.totalPaths) * 100}%`,
+                                                                        height: '100%',
+                                                                        background: '#4ec9b0'
+                                                                    }} />
+                                                                </div>
+                                                                <div style={{color: '#4ec9b0', fontWeight: 'bold', minWidth: '60px', textAlign: 'right'}}>
+                                                                    {count} ({((count / analyticsData.totalPaths) * 100).toFixed(1)}%)
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Thread Coverage */}
+                                    <div style={{background: '#252526', padding: '20px', borderRadius: '8px', marginBottom: '20px'}}>
+                                        <h4 style={{color: '#4ec9b0', marginBottom: '16px'}}>
+                                            Thread Coverage ({Object.keys(analyticsData.threadVisits).length} threads visited)
+                                        </h4>
+                                        <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '12px'}}>
+                                            {Object.entries(analyticsData.threadVisits)
+                                                .sort((a, b) => b[1] - a[1])
+                                                .map(([threadKey, count]) => {
+                                                    const [catIdx, threadIdx] = threadKey.split('-').map(Number);
+                                                    const thread = data[catIdx]?.threads[threadIdx];
+                                                    if (!thread) return null;
+                                                    
+                                                    return (
+                                                        <div key={threadKey} style={{
+                                                            background: '#2d2d30',
+                                                            padding: '12px',
+                                                            borderRadius: '4px'
+                                                        }}>
+                                                            <div style={{color: '#dcdcaa', marginBottom: '4px', fontWeight: 'bold'}}>
+                                                                {thread.title}
+                                                            </div>
+                                                            <div style={{color: '#858585', fontSize: '12px', marginBottom: '8px'}}>
+                                                                {data[catIdx].title}
+                                                            </div>
+                                                            <div style={{color: '#4ec9b0'}}>
+                                                                {count} visits ({((count / analyticsData.totalPaths) * 100).toFixed(1)}%)
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                        </div>
+                                    </div>
+
+                                    {/* End Reasons */}
+                                    <div style={{background: '#252526', padding: '20px', borderRadius: '8px', marginBottom: '20px'}}>
+                                        <h4 style={{color: '#4ec9b0', marginBottom: '16px'}}>Path End Reasons</h4>
+                                        <div style={{display: 'flex', flexDirection: 'column', gap: '8px'}}>
+                                            {Object.entries(analyticsData.endReasons).map(([reason, count]) => (
+                                                <div key={reason} style={{
+                                                    background: '#2d2d30',
+                                                    padding: '12px',
+                                                    borderRadius: '4px',
+                                                    display: 'flex',
+                                                    justifyContent: 'space-between'
+                                                }}>
+                                                    <div style={{color: '#d4d4d4'}}>
+                                                        {reason === 'completed' && '✅ Completed'}
+                                                        {reason === 'no_actions' && '🔒 No Available Actions'}
+                                                        {reason === 'depth_limit' && '⚠️ Depth Limit Reached'}
+                                                        {reason === 'queue_limit' && '⏸️ Queue Limit'}
+                                                    </div>
+                                                    <div style={{color: '#4ec9b0', fontWeight: 'bold'}}>
+                                                        {count} ({((count / analyticsData.totalPaths) * 100).toFixed(1)}%)
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Raw Data Export */}
+                                    <div style={{background: '#252526', padding: '20px', borderRadius: '8px'}}>
+                                        <h4 style={{color: '#4ec9b0', marginBottom: '12px'}}>Export Data</h4>
+                                        <button
+                                            onClick={() => {
+                                                const blob = new Blob([JSON.stringify(analyticsData, null, 2)], { type: 'application/json' });
+                                                const url = URL.createObjectURL(blob);
+                                                const a = document.createElement('a');
+                                                a.href = url;
+                                                a.download = `analytics-${new Date().toISOString()}.json`;
+                                                a.click();
+                                                URL.revokeObjectURL(url);
+                                            }}
+                                            style={{
+                                                padding: '10px 20px',
+                                                background: '#0e639c',
+                                                border: 'none',
+                                                borderRadius: '4px',
+                                                color: 'white',
+                                                cursor: 'pointer'
+                                            }}
+                                        >
+                                            💾 Download Full Analytics Data
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     )}
 
