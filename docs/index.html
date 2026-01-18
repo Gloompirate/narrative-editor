@@ -482,6 +482,16 @@
                     return [];
                 }
             });
+            const [worldEvents, setWorldEvents] = useState(() => {
+                // Load world events from localStorage
+                try {
+                    const saved = localStorage.getItem('narrative-editor-world-events');
+                    return saved ? JSON.parse(saved) : [];
+                } catch (e) {
+                    console.error('Failed to load world events:', e);
+                    return [];
+                }
+            });
             
             // Undo/Redo state
             const [history, setHistory] = useState([]);
@@ -523,6 +533,15 @@
                     console.error('Failed to save user library:', e);
                 }
             }, [userLibrary]);
+
+            // Save world events to localStorage whenever they change
+            useEffect(() => {
+                try {
+                    localStorage.setItem('narrative-editor-world-events', JSON.stringify(worldEvents));
+                } catch (e) {
+                    console.error('Failed to save world events:', e);
+                }
+            }, [worldEvents]);
 
             // Save snapshots to localStorage whenever they change
             useEffect(() => {
@@ -1563,6 +1582,14 @@
                         {view === 'screenplay' && (
                             <ScreenplayPanel data={data} setData={setData} setSelectedItem={setSelectedItem} userLibrary={userLibrary} showMessage={showMessage} />
                         )}
+                        {view === 'lore' && (
+                            <LorePanel 
+                                userLibrary={userLibrary} 
+                                setUserLibrary={setUserLibrary}
+                                worldEvents={worldEvents}
+                                setWorldEvents={setWorldEvents}
+                            />
+                        )}
                         {view === 'json' && (
                             <JSONPanel data={data} setData={setData} showMessage={showMessage} />
                         )}
@@ -1764,7 +1791,10 @@
                                 data: window.narrativeData, // The JSON data
                                 notes: JSON.parse(localStorage.getItem('narrative-editor-notes') || '{}'),
                                 tags: JSON.parse(localStorage.getItem('narrative-editor-tags') || '{}'),
-                                assets: JSON.parse(localStorage.getItem('narrative-editor-assets') || '{}')
+                                assets: JSON.parse(localStorage.getItem('narrative-editor-assets') || '{}'),
+                                userLibrary: JSON.parse(localStorage.getItem('narrative-editor-users') || '[]'),
+                                snapshots: JSON.parse(localStorage.getItem('narrative-editor-snapshots') || '[]'),
+                                worldEvents: JSON.parse(localStorage.getItem('narrative-editor-world-events') || '[]')
                             };
                             
                             const blob = new Blob([JSON.stringify(projectData, null, 2)], { type: 'application/json' });
@@ -1777,7 +1807,7 @@
                         } catch (e) {
                             alert('Failed to save project: ' + e.message);
                         }
-                    }} title="Save complete project (JSON + notes + tags + assets)">
+                    }} title="Save complete project (data + notes + tags + assets + characters + events)">
                         💾 Save Project
                     </button>
                     
@@ -1844,6 +1874,21 @@
                                                     localStorage.setItem('narrative-editor-assets', JSON.stringify(projectData.assets));
                                                 }
                                                 
+                                                // Save user library
+                                                if (projectData.userLibrary) {
+                                                    localStorage.setItem('narrative-editor-users', JSON.stringify(projectData.userLibrary));
+                                                }
+                                                
+                                                // Save snapshots
+                                                if (projectData.snapshots) {
+                                                    localStorage.setItem('narrative-editor-snapshots', JSON.stringify(projectData.snapshots));
+                                                }
+                                                
+                                                // Save world events
+                                                if (projectData.worldEvents) {
+                                                    localStorage.setItem('narrative-editor-world-events', JSON.stringify(projectData.worldEvents));
+                                                }
+                                                
                                                 alert('Project loaded successfully! Refreshing...');
                                                 window.location.reload();
                                             }
@@ -1891,6 +1936,9 @@
                         </button>
                         <button onClick={() => setView('preview')} className={view === 'preview' ? '' : 'secondary'}>
                             👁️ Preview
+                        </button>
+                        <button onClick={() => setView('lore')} className={view === 'lore' ? '' : 'secondary'}>
+                            📚 Lore
                         </button>
                         <button onClick={() => setView('json')} className={view === 'json' ? '' : 'secondary'}>
                             📄 JSON View
@@ -3566,6 +3614,623 @@
                 </div>
             );
         }
+        function LorePanel({ userLibrary, setUserLibrary, worldEvents, setWorldEvents }) {
+            const [activeTab, setActiveTab] = useState('timeline');
+            const [editingEvent, setEditingEvent] = useState(null);
+            const [sortBy, setSortBy] = useState('time'); // 'time' or 'name'
+
+            const addWorldEvent = () => {
+                const newEvent = {
+                    id: Date.now(),
+                    title: 'New World Event',
+                    day: 0,
+                    content: 'Describe what happened...',
+                    createdAt: new Date().toISOString()
+                };
+                setWorldEvents([...worldEvents, newEvent]);
+                setEditingEvent(newEvent.id);
+            };
+
+            const updateEvent = (id, updates) => {
+                setWorldEvents(worldEvents.map(event => 
+                    event.id === id ? { ...event, ...updates } : event
+                ));
+            };
+
+            const deleteEvent = (id) => {
+                if (confirm('Delete this world event?')) {
+                    setWorldEvents(worldEvents.filter(event => event.id !== id));
+                    if (editingEvent === id) setEditingEvent(null);
+                }
+            };
+
+            const sortedEvents = [...worldEvents].sort((a, b) => {
+                if (sortBy === 'time') {
+                    return a.day - b.day;
+                }
+                return a.title.localeCompare(b.title);
+            });
+
+            const sortedCharacters = [...userLibrary].sort((a, b) => {
+                if (sortBy === 'time') {
+                    return (a.appearsOnDay || 0) - (b.appearsOnDay || 0);
+                }
+                return a.name.localeCompare(b.name);
+            });
+
+            // Auto-select first event when switching to events tab
+            React.useEffect(() => {
+                if (activeTab === 'events' && !editingEvent && worldEvents.length > 0) {
+                    setEditingEvent(sortedEvents[0].id);
+                }
+            }, [activeTab]);
+
+            return (
+                <div style={{
+                    display: 'flex',
+                    height: '100%',
+                    overflow: 'hidden',
+                    background: '#1e1e1e'
+                }}>
+                    {/* Sidebar */}
+                    <div style={{
+                        width: '280px',
+                        background: '#252526',
+                        borderRight: '1px solid #3e3e42',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        overflow: 'hidden'
+                    }}>
+                        <div style={{padding: '20px', borderBottom: '1px solid #3e3e42'}}>
+                            <h2 style={{margin: '0 0 16px 0', color: '#4ec9b0'}}>📚 Lore</h2>
+                            
+                            {/* Tab buttons */}
+                            <div style={{display: 'flex', flexDirection: 'column', gap: '8px'}}>
+                                <button
+                                    onClick={() => setActiveTab('timeline')}
+                                    style={{
+                                        padding: '10px 16px',
+                                        background: activeTab === 'timeline' ? '#0e639c' : '#2d2d30',
+                                        border: 'none',
+                                        borderRadius: '4px',
+                                        color: 'white',
+                                        cursor: 'pointer',
+                                        textAlign: 'left',
+                                        fontWeight: activeTab === 'timeline' ? 'bold' : 'normal'
+                                    }}
+                                >
+                                    📅 Timeline ({userLibrary.length + worldEvents.length})
+                                </button>
+                                <button
+                                    onClick={() => setActiveTab('characters')}
+                                    style={{
+                                        padding: '10px 16px',
+                                        background: activeTab === 'characters' ? '#0e639c' : '#2d2d30',
+                                        border: 'none',
+                                        borderRadius: '4px',
+                                        color: 'white',
+                                        cursor: 'pointer',
+                                        textAlign: 'left',
+                                        fontWeight: activeTab === 'characters' ? 'bold' : 'normal'
+                                    }}
+                                >
+                                    👥 Characters ({userLibrary.length})
+                                </button>
+                                <button
+                                    onClick={() => setActiveTab('events')}
+                                    style={{
+                                        padding: '10px 16px',
+                                        background: activeTab === 'events' ? '#0e639c' : '#2d2d30',
+                                        border: 'none',
+                                        borderRadius: '4px',
+                                        color: 'white',
+                                        cursor: 'pointer',
+                                        textAlign: 'left',
+                                        fontWeight: activeTab === 'events' ? 'bold' : 'normal'
+                                    }}
+                                >
+                                    🌍 World Events ({worldEvents.length})
+                                </button>
+                            </div>
+
+                            {/* Sort toggle */}
+                            <div style={{marginTop: '16px', fontSize: '12px'}}>
+                                <label style={{color: '#858585', display: 'block', marginBottom: '6px'}}>Sort by:</label>
+                                <select
+                                    value={sortBy}
+                                    onChange={(e) => setSortBy(e.target.value)}
+                                    style={{
+                                        width: '100%',
+                                        padding: '6px',
+                                        background: '#1e1e1e',
+                                        border: '1px solid #3e3e42',
+                                        color: 'white',
+                                        borderRadius: '4px'
+                                    }}
+                                >
+                                    <option value="time">Timeline (Day)</option>
+                                    <option value="name">Name (A-Z)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        {/* List */}
+                        <div style={{flex: 1, overflow: 'auto', padding: '12px'}}>
+                            {activeTab === 'characters' && sortedCharacters.map(char => (
+                                <div
+                                    key={char.id}
+                                    style={{
+                                        padding: '12px',
+                                        background: '#2d2d30',
+                                        borderRadius: '4px',
+                                        marginBottom: '8px',
+                                        cursor: 'pointer',
+                                        border: '1px solid #3e3e42'
+                                    }}
+                                >
+                                    <div style={{fontWeight: 'bold', color: '#9cdcfe', marginBottom: '4px'}}>
+                                        {char.name}
+                                    </div>
+                                    <div style={{fontSize: '11px', color: '#858585'}}>
+                                        {char.rank && `${char.rank} • `}
+                                        {char.appearsOnDay !== undefined ? `Day ${char.appearsOnDay}` : 'Day 0'}
+                                    </div>
+                                </div>
+                            ))}
+
+                            {activeTab === 'events' && (
+                                <>
+                                    <button
+                                        onClick={addWorldEvent}
+                                        style={{
+                                            width: '100%',
+                                            padding: '12px',
+                                            background: '#0e639c',
+                                            border: 'none',
+                                            borderRadius: '4px',
+                                            color: 'white',
+                                            cursor: 'pointer',
+                                            marginBottom: '12px',
+                                            fontWeight: 'bold'
+                                        }}
+                                    >
+                                        ➕ Add Event
+                                    </button>
+
+                                    {sortedEvents.map(event => (
+                                        <div
+                                            key={event.id}
+                                            onClick={() => setEditingEvent(event.id)}
+                                            style={{
+                                                padding: '12px',
+                                                background: editingEvent === event.id ? '#2d3d2d' : '#2d2d30',
+                                                borderRadius: '4px',
+                                                marginBottom: '8px',
+                                                cursor: 'pointer',
+                                                border: editingEvent === event.id ? '2px solid #4ec9b0' : '1px solid #3e3e42'
+                                            }}
+                                        >
+                                            <div style={{fontWeight: 'bold', color: '#dcdcaa', marginBottom: '4px'}}>
+                                                {event.title}
+                                            </div>
+                                            <div style={{fontSize: '11px', color: '#858585'}}>
+                                                Day {event.day}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Main content */}
+                    <div style={{flex: 1, overflow: 'auto', padding: '24px', width: '100%'}}>
+                        {activeTab === 'timeline' && (
+                            <div style={{width: '100%'}}>
+                                <h3 style={{color: '#4ec9b0', marginBottom: '16px'}}>Combined Timeline</h3>
+                                <p style={{color: '#858585', marginBottom: '24px', fontSize: '14px'}}>
+                                    All characters and world events sorted by day
+                                </p>
+
+                                {(() => {
+                                    // Combine characters and events into timeline
+                                    const timelineItems = [];
+                                    
+                                    // Add characters
+                                    userLibrary.forEach(char => {
+                                        timelineItems.push({
+                                            type: 'character',
+                                            day: char.appearsOnDay !== undefined ? char.appearsOnDay : 0,
+                                            name: char.name,
+                                            rank: char.rank,
+                                            biography: char.biography,
+                                            status: char.status,
+                                            id: char.id
+                                        });
+                                    });
+                                    
+                                    // Add events
+                                    worldEvents.forEach(event => {
+                                        timelineItems.push({
+                                            type: 'event',
+                                            day: event.day,
+                                            title: event.title,
+                                            content: event.content,
+                                            id: event.id
+                                        });
+                                    });
+                                    
+                                    // Sort by day
+                                    timelineItems.sort((a, b) => a.day - b.day);
+                                    
+                                    if (timelineItems.length === 0) {
+                                        return (
+                                            <div style={{padding: '40px', textAlign: 'center', color: '#858585'}}>
+                                                No timeline items yet. Add characters or world events!
+                                            </div>
+                                        );
+                                    }
+                                    
+                                    // Group by day
+                                    const dayGroups = {};
+                                    timelineItems.forEach(item => {
+                                        if (!dayGroups[item.day]) {
+                                            dayGroups[item.day] = [];
+                                        }
+                                        dayGroups[item.day].push(item);
+                                    });
+                                    
+                                    return (
+                                        <div>
+                                            {Object.keys(dayGroups).sort((a, b) => parseInt(a) - parseInt(b)).map(day => (
+                                                <div key={day} style={{marginBottom: '32px'}}>
+                                                    <div style={{
+                                                        background: '#4ec9b0',
+                                                        color: '#1e1e1e',
+                                                        padding: '8px 16px',
+                                                        borderRadius: '6px',
+                                                        fontWeight: 'bold',
+                                                        fontSize: '16px',
+                                                        marginBottom: '16px',
+                                                        display: 'inline-block'
+                                                    }}>
+                                                        📅 Day {day}
+                                                    </div>
+                                                    
+                                                    <div style={{display: 'flex', flexDirection: 'column', gap: '12px'}}>
+                                                        {dayGroups[day].map(item => (
+                                                            <div key={`${item.type}-${item.id}`} style={{
+                                                                background: '#252526',
+                                                                padding: '16px',
+                                                                borderRadius: '8px',
+                                                                border: item.type === 'character' ? '2px solid #9cdcfe' : '2px solid #dcdcaa',
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                gap: '16px'
+                                                            }}>
+                                                                {item.type === 'character' ? (
+                                                                    <>
+                                                                        <div style={{
+                                                                            width: '50px',
+                                                                            height: '50px',
+                                                                            background: '#3e3e42',
+                                                                            borderRadius: '50%',
+                                                                            display: 'flex',
+                                                                            alignItems: 'center',
+                                                                            justifyContent: 'center',
+                                                                            fontSize: '24px',
+                                                                            flexShrink: 0
+                                                                        }}>
+                                                                            👤
+                                                                        </div>
+                                                                        <div style={{flex: 1}}>
+                                                                            <div style={{display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '6px'}}>
+                                                                                <h4 style={{margin: 0, color: '#9cdcfe', fontSize: '18px'}}>
+                                                                                    {item.name}
+                                                                                </h4>
+                                                                                <span style={{
+                                                                                    background: '#9cdcfe',
+                                                                                    color: '#1e1e1e',
+                                                                                    padding: '2px 8px',
+                                                                                    borderRadius: '3px',
+                                                                                    fontSize: '11px',
+                                                                                    fontWeight: 'bold'
+                                                                                }}>
+                                                                                    CHARACTER
+                                                                                </span>
+                                                                                {item.status === 'inactive' && (
+                                                                                    <span style={{
+                                                                                        background: '#5a1e1e',
+                                                                                        color: '#f48771',
+                                                                                        padding: '2px 8px',
+                                                                                        borderRadius: '3px',
+                                                                                        fontSize: '11px',
+                                                                                        fontWeight: 'bold'
+                                                                                    }}>
+                                                                                        INACTIVE
+                                                                                    </span>
+                                                                                )}
+                                                                            </div>
+                                                                            <div style={{color: '#858585', fontSize: '13px'}}>
+                                                                                {item.rank || 'No rank'}
+                                                                            </div>
+                                                                            {item.biography && (
+                                                                                <div style={{
+                                                                                    color: '#d4d4d4',
+                                                                                    fontSize: '13px',
+                                                                                    marginTop: '8px',
+                                                                                    lineHeight: '1.6',
+                                                                                    maxHeight: '100px',
+                                                                                    overflow: 'hidden',
+                                                                                    textOverflow: 'ellipsis'
+                                                                                }}>
+                                                                                    {item.biography.substring(0, 200)}{item.biography.length > 200 ? '...' : ''}
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                    </>
+                                                                ) : (
+                                                                    <>
+                                                                        <div style={{
+                                                                            width: '50px',
+                                                                            height: '50px',
+                                                                            background: '#3e3e42',
+                                                                            borderRadius: '50%',
+                                                                            display: 'flex',
+                                                                            alignItems: 'center',
+                                                                            justifyContent: 'center',
+                                                                            fontSize: '24px',
+                                                                            flexShrink: 0
+                                                                        }}>
+                                                                            🌍
+                                                                        </div>
+                                                                        <div style={{flex: 1}}>
+                                                                            <div style={{display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '6px'}}>
+                                                                                <h4 style={{margin: 0, color: '#dcdcaa', fontSize: '18px'}}>
+                                                                                    {item.title}
+                                                                                </h4>
+                                                                                <span style={{
+                                                                                    background: '#dcdcaa',
+                                                                                    color: '#1e1e1e',
+                                                                                    padding: '2px 8px',
+                                                                                    borderRadius: '3px',
+                                                                                    fontSize: '11px',
+                                                                                    fontWeight: 'bold'
+                                                                                }}>
+                                                                                    WORLD EVENT
+                                                                                </span>
+                                                                                <button
+                                                                                    onClick={() => {
+                                                                                        setEditingEvent(item.id);
+                                                                                        setActiveTab('events');
+                                                                                    }}
+                                                                                    style={{
+                                                                                        padding: '4px 12px',
+                                                                                        background: '#0e639c',
+                                                                                        border: 'none',
+                                                                                        borderRadius: '4px',
+                                                                                        color: 'white',
+                                                                                        cursor: 'pointer',
+                                                                                        fontSize: '12px'
+                                                                                    }}
+                                                                                >
+                                                                                    ✏️ Edit
+                                                                                </button>
+                                                                            </div>
+                                                                            <div style={{
+                                                                                color: '#d4d4d4',
+                                                                                fontSize: '13px',
+                                                                                marginTop: '8px',
+                                                                                lineHeight: '1.6',
+                                                                                maxHeight: '100px',
+                                                                                overflow: 'hidden',
+                                                                                textOverflow: 'ellipsis'
+                                                                            }}>
+                                                                                {item.content.substring(0, 200)}{item.content.length > 200 ? '...' : ''}
+                                                                            </div>
+                                                                        </div>
+                                                                    </>
+                                                                )}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    );
+                                })()}
+                            </div>
+                        )}
+                        
+                        {activeTab === 'characters' && (
+                            <div style={{width: '100%'}}>
+                                <h3 style={{color: '#4ec9b0', marginBottom: '16px'}}>Character Reference</h3>
+                                <p style={{color: '#858585', marginBottom: '24px', fontSize: '14px'}}>
+                                    View character details from your User Library. Edit characters in <strong>📊 Utilities → 👥 User Library</strong>.
+                                </p>
+
+                                {sortedCharacters.length === 0 ? (
+                                    <div style={{padding: '40px', textAlign: 'center', color: '#858585'}}>
+                                        No characters yet. Add them in User Library!
+                                    </div>
+                                ) : (
+                                    <div style={{display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '20px', width: '100%'}}>
+                                        {sortedCharacters.map(char => (
+                                            <div key={char.id} style={{
+                                                background: '#252526',
+                                                padding: '20px',
+                                                borderRadius: '8px',
+                                                border: '1px solid #3e3e42'
+                                            }}>
+                                                <div style={{display: 'flex', gap: '12px', marginBottom: '16px'}}>
+                                                    <div style={{
+                                                        width: '60px',
+                                                        height: '60px',
+                                                        background: '#3e3e42',
+                                                        borderRadius: '50%',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        fontSize: '24px'
+                                                    }}>
+                                                        👤
+                                                    </div>
+                                                    <div style={{flex: 1}}>
+                                                        <h4 style={{margin: 0, color: '#9cdcfe', fontSize: '18px'}}>{char.name}</h4>
+                                                        <div style={{color: '#858585', fontSize: '13px', marginTop: '4px'}}>
+                                                            {char.rank || 'No rank'}
+                                                        </div>
+                                                        <div style={{
+                                                            background: '#2d3d2d',
+                                                            color: '#4ec9b0',
+                                                            padding: '2px 8px',
+                                                            borderRadius: '3px',
+                                                            fontSize: '11px',
+                                                            display: 'inline-block',
+                                                            marginTop: '6px'
+                                                        }}>
+                                                            Day {char.appearsOnDay !== undefined ? char.appearsOnDay : 0}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                {char.biography && (
+                                                    <div style={{
+                                                        color: '#d4d4d4',
+                                                        fontSize: '13px',
+                                                        lineHeight: '1.6',
+                                                        whiteSpace: 'pre-wrap'
+                                                    }}>
+                                                        {char.biography}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {activeTab === 'events' && (
+                            <div>
+                                {editingEvent ? (
+                                    (() => {
+                                        const event = worldEvents.find(e => e.id === editingEvent);
+                                        if (!event) return null;
+
+                                        return (
+                                            <div>
+                                                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px'}}>
+                                                    <h3 style={{margin: 0, color: '#4ec9b0'}}>Edit World Event</h3>
+                                                    <div style={{display: 'flex', gap: '8px'}}>
+                                                        <button
+                                                            onClick={() => setEditingEvent(null)}
+                                                            style={{
+                                                                padding: '8px 16px',
+                                                                background: '#3e3e42',
+                                                                border: 'none',
+                                                                borderRadius: '4px',
+                                                                color: 'white',
+                                                                cursor: 'pointer'
+                                                            }}
+                                                        >
+                                                            Done
+                                                        </button>
+                                                        <button
+                                                            onClick={() => deleteEvent(event.id)}
+                                                            style={{
+                                                                padding: '8px 16px',
+                                                                background: '#5a1e1e',
+                                                                border: 'none',
+                                                                borderRadius: '4px',
+                                                                color: 'white',
+                                                                cursor: 'pointer'
+                                                            }}
+                                                        >
+                                                            🗑️ Delete
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                <div style={{background: '#252526', padding: '24px', borderRadius: '8px', border: '1px solid #3e3e42'}}>
+                                                    <div style={{marginBottom: '20px'}}>
+                                                        <label style={{display: 'block', marginBottom: '8px', color: '#9cdcfe', fontWeight: 'bold'}}>
+                                                            Event Title
+                                                        </label>
+                                                        <input
+                                                            type="text"
+                                                            value={event.title}
+                                                            onChange={(e) => updateEvent(event.id, { title: e.target.value })}
+                                                            style={{
+                                                                width: '100%',
+                                                                padding: '10px',
+                                                                background: '#1e1e1e',
+                                                                border: '1px solid #3e3e42',
+                                                                color: 'white',
+                                                                borderRadius: '4px',
+                                                                fontSize: '16px'
+                                                            }}
+                                                        />
+                                                    </div>
+
+                                                    <div style={{marginBottom: '20px'}}>
+                                                        <label style={{display: 'block', marginBottom: '8px', color: '#9cdcfe', fontWeight: 'bold'}}>
+                                                            Day
+                                                        </label>
+                                                        <input
+                                                            type="number"
+                                                            value={event.day}
+                                                            onChange={(e) => updateEvent(event.id, { day: parseInt(e.target.value) || 0 })}
+                                                            style={{
+                                                                width: '120px',
+                                                                padding: '10px',
+                                                                background: '#1e1e1e',
+                                                                border: '1px solid #3e3e42',
+                                                                color: 'white',
+                                                                borderRadius: '4px',
+                                                                fontSize: '16px'
+                                                            }}
+                                                        />
+                                                    </div>
+
+                                                    <div>
+                                                        <label style={{display: 'block', marginBottom: '8px', color: '#9cdcfe', fontWeight: 'bold'}}>
+                                                            Content (Markdown supported)
+                                                        </label>
+                                                        <textarea
+                                                            value={event.content}
+                                                            onChange={(e) => updateEvent(event.id, { content: e.target.value })}
+                                                            style={{
+                                                                width: '100%',
+                                                                minHeight: '300px',
+                                                                padding: '12px',
+                                                                background: '#1e1e1e',
+                                                                border: '1px solid #3e3e42',
+                                                                color: 'white',
+                                                                borderRadius: '4px',
+                                                                fontSize: '14px',
+                                                                lineHeight: '1.6',
+                                                                fontFamily: 'monospace',
+                                                                resize: 'vertical'
+                                                            }}
+                                                            placeholder="Describe what happened in this event...&#10;&#10;You can use **markdown** for formatting:&#10;- **bold**&#10;- *italic*&#10;- # headers"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })()
+                                ) : (
+                                    <div style={{padding: '40px', textAlign: 'center', color: '#858585'}}>
+                                        Select a world event to edit, or create a new one
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        }
+
         function ScreenplayPanel({ data, setData, setSelectedItem, userLibrary, showMessage }) {
             const [selectedThread, setSelectedThread] = useState(null);
             const [editingPost, setEditingPost] = useState(null); // { catIndex, threadIndex, postIndex }
