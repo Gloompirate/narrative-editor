@@ -1283,8 +1283,6 @@
                                 onAddCategory={addCategory}
                                 onAddThread={addThread}
                                 onAddPost={addPost}
-                                onDelete={deleteItem}
-                                setView={setView}
                             />
                         )}
                         {view === 'screenplay' && (
@@ -1393,9 +1391,7 @@
                                 data: window.narrativeData, // The JSON data
                                 notes: JSON.parse(localStorage.getItem('narrative-editor-notes') || '{}'),
                                 tags: JSON.parse(localStorage.getItem('narrative-editor-tags') || '{}'),
-                                assets: JSON.parse(localStorage.getItem('narrative-editor-assets') || '{}'),
-                                userLibrary: JSON.parse(localStorage.getItem('narrative-editor-users') || '[]'),
-                                snapshots: JSON.parse(localStorage.getItem('narrative-editor-snapshots') || '[]')
+                                assets: JSON.parse(localStorage.getItem('narrative-editor-assets') || '{}')
                             };
                             
                             const blob = new Blob([JSON.stringify(projectData, null, 2)], { type: 'application/json' });
@@ -1408,7 +1404,7 @@
                         } catch (e) {
                             alert('Failed to save project: ' + e.message);
                         }
-                    }} title="Save complete project (JSON + notes + tags + assets + users + snapshots)">
+                    }} title="Save complete project (JSON + notes + tags + assets)">
                         💾 Save Project
                     </button>
                     
@@ -1456,7 +1452,7 @@
                                         // Check if it's a project file or just JSON
                                         if (projectData.version && projectData.data) {
                                             // It's a project file - restore everything
-                                            if (confirm('This will replace all current data, notes, tags, assets, users, and snapshots. Continue?')) {
+                                            if (confirm('This will replace all current data, notes, tags, and assets. Continue?')) {
                                                 // Save data
                                                 localStorage.setItem('narrative-editor-data-autosave', JSON.stringify(projectData.data));
                                                 
@@ -1473,16 +1469,6 @@
                                                 // Save assets
                                                 if (projectData.assets) {
                                                     localStorage.setItem('narrative-editor-assets', JSON.stringify(projectData.assets));
-                                                }
-                                                
-                                                // Save user library
-                                                if (projectData.userLibrary) {
-                                                    localStorage.setItem('narrative-editor-users', JSON.stringify(projectData.userLibrary));
-                                                }
-                                                
-                                                // Save snapshots
-                                                if (projectData.snapshots) {
-                                                    localStorage.setItem('narrative-editor-snapshots', JSON.stringify(projectData.snapshots));
                                                 }
                                                 
                                                 alert('Project loaded successfully! Refreshing...');
@@ -2377,7 +2363,7 @@
             );
         }
 
-        function GraphPanel({ data, setSelectedItem, onNodeDoubleClick, runValidation, notes, itemTags, onAddCategory, onAddThread, onAddPost, onDelete, setView }) {
+        function GraphPanel({ data, setSelectedItem, onNodeDoubleClick, runValidation, notes, itemTags, onAddCategory, onAddThread, onAddPost }) {
             const [nodes, setNodes] = useState([]);
             const [edges, setEdges] = useState([]);
             const [highlightedFlag, setHighlightedFlag] = useState(null);
@@ -2385,47 +2371,8 @@
             const [validationIssues, setValidationIssues] = useState([]);
             const [simulatedFlags, setSimulatedFlags] = useState(new Set());
             const [showFlagDebugger, setShowFlagDebugger] = useState(false);
-            const [layoutDirection, setLayoutDirection] = useState(() => {
-                // Load saved layout preference
-                try {
-                    const saved = localStorage.getItem('narrative-editor-layout');
-                    return saved || 'horizontal';
-                } catch (e) {
-                    return 'horizontal';
-                }
-            });
+            const [layoutDirection, setLayoutDirection] = useState('horizontal'); // 'horizontal' or 'vertical'
             const [contextMenu, setContextMenu] = useState(null); // { x, y, nodeId, nodeType, path }
-            const reactFlowInstance = React.useRef(null);
-
-            // Helper to convert path to selectedItem format
-            const pathToSelectedItem = (nodeType, path) => {
-                return { type: nodeType, path };
-            };
-
-            // Handle edit - select item and switch to tree view
-            const handleEdit = () => {
-                if (!contextMenu) return;
-                setSelectedItem(pathToSelectedItem(contextMenu.nodeType, contextMenu.path));
-                setView('tree');
-                setContextMenu(null);
-            };
-
-            // Handle delete
-            const handleDelete = () => {
-                if (!contextMenu) return;
-                setSelectedItem(pathToSelectedItem(contextMenu.nodeType, contextMenu.path));
-                onDelete();
-                setContextMenu(null);
-            };
-
-            // Save layout preference when it changes
-            useEffect(() => {
-                try {
-                    localStorage.setItem('narrative-editor-layout', layoutDirection);
-                } catch (e) {
-                    console.error('Failed to save layout preference:', e);
-                }
-            }, [layoutDirection]);
 
             // Close context menu when clicking elsewhere
             useEffect(() => {
@@ -2838,16 +2785,6 @@
                 setEdges(newEdges);
             }, [data, collapsedBranches, validationIssues, simulatedFlags, layoutDirection]);
 
-            // Fit view when layout direction changes
-            useEffect(() => {
-                if (reactFlowInstance.current) {
-                    // Use setTimeout to ensure nodes are positioned before fitting
-                    setTimeout(() => {
-                        reactFlowInstance.current.fitView({ padding: 0.2, duration: 400 });
-                    }, 50);
-                }
-            }, [layoutDirection]);
-
             // Apply highlighting when a flag is selected
             useEffect(() => {
                 if (!highlightedFlag) {
@@ -3127,9 +3064,6 @@
                         onNodeClick={onNodeClick}
                         onNodeDoubleClick={onNodeDoubleClickHandler}
                         onNodeContextMenu={onNodeContextMenu}
-                        onInit={(instance) => {
-                            reactFlowInstance.current = instance;
-                        }}
                         fitView
                         attributionPosition="bottom-left"
                     >
@@ -3235,36 +3169,6 @@
                                     + Add Post to Thread
                                 </div>
                             )}
-                            
-                            <div style={{borderTop: '1px solid #3e3e42', margin: '4px 0'}}></div>
-                            
-                            <div
-                                style={{
-                                    padding: '8px 16px',
-                                    cursor: 'pointer',
-                                    fontSize: '13px',
-                                    color: '#d4d4d4'
-                                }}
-                                onMouseEnter={(e) => e.target.style.background = '#2a2d2e'}
-                                onMouseLeave={(e) => e.target.style.background = 'transparent'}
-                                onClick={handleEdit}
-                            >
-                                ✏️ Edit
-                            </div>
-                            
-                            <div
-                                style={{
-                                    padding: '8px 16px',
-                                    cursor: 'pointer',
-                                    fontSize: '13px',
-                                    color: '#ce5555'
-                                }}
-                                onMouseEnter={(e) => e.target.style.background = '#2a2d2e'}
-                                onMouseLeave={(e) => e.target.style.background = 'transparent'}
-                                onClick={handleDelete}
-                            >
-                                🗑️ Delete
-                            </div>
                             
                             <div style={{borderTop: '1px solid #3e3e42', margin: '4px 0'}}></div>
                             
