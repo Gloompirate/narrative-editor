@@ -440,7 +440,12 @@
                 return SAMPLE_DATA;
             });
             const [selectedItem, setSelectedItem] = useState(null);
-            const [view, setView] = useState('tree'); // 'tree', 'graph', 'json', 'utilities', 'preview'
+            const [view, setView] = useState(() => {
+                // Initialize from URL hash if present
+                const hash = window.location.hash.slice(1);
+                const validViews = ['tree', 'graph', 'screenplay', 'preview', 'lore', 'json', 'utilities'];
+                return validViews.includes(hash) ? hash : 'tree';
+            });
             const [expandedItems, setExpandedItems] = useState(new Set(['cat_general']));
             const [message, setMessage] = useState(null);
             const [currentDay, setCurrentDay] = useState(0);
@@ -506,6 +511,25 @@
                     return [];
                 }
             });
+
+            // Update URL hash when view changes (for browser history)
+            useEffect(() => {
+                window.history.pushState(null, '', `#${view}`);
+            }, [view]);
+
+            // Handle browser back/forward buttons
+            useEffect(() => {
+                const handlePopState = () => {
+                    const hash = window.location.hash.slice(1);
+                    const validViews = ['tree', 'graph', 'screenplay', 'preview', 'lore', 'json', 'utilities'];
+                    if (validViews.includes(hash)) {
+                        setView(hash);
+                    }
+                };
+
+                window.addEventListener('popstate', handlePopState);
+                return () => window.removeEventListener('popstate', handlePopState);
+            }, []);
 
             // Save notes to localStorage whenever they change
             useEffect(() => {
@@ -3680,6 +3704,7 @@
             return (
                 <div style={{
                     display: 'flex',
+                    flex: 1,
                     height: '100%',
                     overflow: 'hidden',
                     background: '#1e1e1e'
@@ -3893,9 +3918,9 @@
                                     });
                                     
                                     return (
-                                        <div>
+                                        <div style={{width: '100%'}}>
                                             {Object.keys(dayGroups).sort((a, b) => parseInt(a) - parseInt(b)).map(day => (
-                                                <div key={day} style={{marginBottom: '32px'}}>
+                                                <div key={day} style={{marginBottom: '32px', width: '100%'}}>
                                                     <div style={{
                                                         background: '#4ec9b0',
                                                         color: '#1e1e1e',
@@ -3909,7 +3934,7 @@
                                                         📅 Day {day}
                                                     </div>
                                                     
-                                                    <div style={{display: 'flex', flexDirection: 'column', gap: '12px'}}>
+                                                    <div style={{display: 'flex', flexDirection: 'column', gap: '12px', width: '100%'}}>
                                                         {dayGroups[day].map(item => (
                                                             <div key={`${item.type}-${item.id}`} style={{
                                                                 background: '#252526',
@@ -3918,7 +3943,8 @@
                                                                 border: item.type === 'character' ? '2px solid #9cdcfe' : '2px solid #dcdcaa',
                                                                 display: 'flex',
                                                                 alignItems: 'center',
-                                                                gap: '16px'
+                                                                gap: '16px',
+                                                                width: '100%'
                                                             }}>
                                                                 {item.type === 'character' ? (
                                                                     <>
