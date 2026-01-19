@@ -1096,6 +1096,12 @@
                 });
                 
                 setData(newData);
+                logAction('search_replace', { 
+                    searchText, 
+                    replaceText, 
+                    scope, 
+                    replacements 
+                });
                 return replacements;
             };
 
@@ -1122,6 +1128,10 @@
                 });
                 
                 setData(newData);
+                logAction('bulk_edit', { 
+                    itemCount: nodePaths.length, 
+                    fields: Object.keys(updates) 
+                });
                 showMessage(`Updated ${nodePaths.length} item(s)`, 'success');
             };
 
@@ -1136,6 +1146,7 @@
                 };
                 setData([...data, newCat]);
                 setSelectedItem({ type: 'category', path: [data.length] });
+                logAction('item_created', { type: 'category', title: 'New Category' });
                 showMessage('Category added', 'success');
             };
 
@@ -1154,6 +1165,11 @@
                 newData[catIndex].threads.push(newThread);
                 setData(newData);
                 setSelectedItem({ type: 'thread', path: [catIndex, newData[catIndex].threads.length - 1] });
+                logAction('item_created', { 
+                    type: 'thread', 
+                    title: 'New Thread',
+                    category: newData[catIndex].title 
+                });
                 showMessage('Thread added', 'success');
             };
 
@@ -1174,6 +1190,11 @@
                 setData(newData);
                 setNextTimestamp(nextTimestamp + 1);
                 setSelectedItem({ type: 'post', path: [catIndex, threadIndex, newData[catIndex].threads[threadIndex].posts.length - 1] });
+                logAction('item_created', { 
+                    type: 'post',
+                    category: newData[catIndex].title,
+                    thread: newData[catIndex].threads[threadIndex].title 
+                });
                 showMessage('Post added', 'success');
             };
 
@@ -1222,16 +1243,27 @@
                 const newData = [...data];
                 const [catIndex, threadIndex, postIndex] = selectedItem.path;
 
+                let logDetails = { type: selectedItem.type };
+
                 if (selectedItem.type === 'category') {
+                    logDetails.title = newData[catIndex].title;
+                    logDetails.threadsDeleted = newData[catIndex].threads.length;
                     newData.splice(catIndex, 1);
                 } else if (selectedItem.type === 'thread') {
+                    logDetails.category = newData[catIndex].title;
+                    logDetails.title = newData[catIndex].threads[threadIndex].title;
+                    logDetails.postsDeleted = newData[catIndex].threads[threadIndex].posts.length;
                     newData[catIndex].threads.splice(threadIndex, 1);
                 } else if (selectedItem.type === 'post') {
+                    logDetails.category = newData[catIndex].title;
+                    logDetails.thread = newData[catIndex].threads[threadIndex].title;
+                    logDetails.userName = newData[catIndex].threads[threadIndex].posts[postIndex].user_name;
                     newData[catIndex].threads[threadIndex].posts.splice(postIndex, 1);
                 }
 
                 setData(newData);
                 setSelectedItem(null);
+                logAction('item_deleted', logDetails);
                 showMessage('Item deleted', 'success');
             };
 
@@ -1252,15 +1284,26 @@
                 const newData = JSON.parse(JSON.stringify(data));
                 const [catIndex, threadIndex, postIndex] = selectedItem.path;
 
+                let logDetails = { 
+                    type: selectedItem.type,
+                    fields: Object.keys(updates)
+                };
+
                 if (selectedItem.type === 'category') {
+                    logDetails.title = newData[catIndex].title;
                     Object.assign(newData[catIndex], updates);
                 } else if (selectedItem.type === 'thread') {
+                    logDetails.category = newData[catIndex].title;
+                    logDetails.title = newData[catIndex].threads[threadIndex].title;
                     Object.assign(newData[catIndex].threads[threadIndex], updates);
                 } else if (selectedItem.type === 'post') {
+                    logDetails.category = newData[catIndex].title;
+                    logDetails.thread = newData[catIndex].threads[threadIndex].title;
                     Object.assign(newData[catIndex].threads[threadIndex].posts[postIndex], updates);
                 }
 
                 setData(newData);
+                logAction('item_updated', logDetails);
             };
 
             const showMessage = (text, type) => {
@@ -1276,6 +1319,7 @@
                 a.href = url;
                 a.download = 'forum-data.json';
                 a.click();
+                logAction('data_exported', { format: 'JSON', categories: data.length });
                 showMessage('JSON exported', 'success');
             };
 
@@ -1379,6 +1423,7 @@
                 a.download = 'narrative.yarn';
                 a.click();
                 URL.revokeObjectURL(url);
+                logAction('data_exported', { format: 'Yarn', categories: data.length });
                 showMessage('Yarn Script exported', 'success');
             };
 
@@ -1478,6 +1523,7 @@
                 a.download = 'narrative.html';
                 a.click();
                 URL.revokeObjectURL(url);
+                logAction('data_exported', { format: 'HTML', categories: data.length });
                 showMessage('HTML exported', 'success');
             };
 
@@ -1546,6 +1592,7 @@
                 a.download = 'narrative.md';
                 a.click();
                 URL.revokeObjectURL(url);
+                logAction('data_exported', { format: 'Markdown', categories: data.length });
                 showMessage('Markdown exported', 'success');
             };
 
@@ -1558,6 +1605,11 @@
                             const imported = JSON.parse(e.target.result);
                             setData(imported);
                             setSelectedItem(null);
+                            logAction('data_imported', { 
+                                format: 'JSON', 
+                                categories: imported.length,
+                                filename: file.name 
+                            });
                             showMessage('JSON imported successfully', 'success');
                         } catch (error) {
                             showMessage('Invalid JSON file: ' + error.message, 'error');
