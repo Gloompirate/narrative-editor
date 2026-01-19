@@ -511,6 +511,15 @@
                     return [];
                 }
             });
+            const [auditLog, setAuditLog] = useState(() => {
+                try {
+                    const saved = localStorage.getItem('narrative-editor-audit-log');
+                    return saved ? JSON.parse(saved) : [];
+                } catch (e) {
+                    console.error('Failed to load audit log:', e);
+                    return [];
+                }
+            });
 
             // Update URL hash when view changes (for browser history)
             useEffect(() => {
@@ -575,6 +584,15 @@
                     console.error('Failed to save snapshots:', e);
                 }
             }, [snapshots]);
+
+            // Save audit log to localStorage whenever it changes  
+            useEffect(() => {
+                try {
+                    localStorage.setItem('narrative-editor-audit-log', JSON.stringify(auditLog));
+                } catch (e) {
+                    console.error('Failed to save audit log:', e);
+                }
+            }, [auditLog]);
 
             // Add to history when data changes (for undo/redo)
             useEffect(() => {
@@ -697,6 +715,7 @@
                     tags: JSON.parse(JSON.stringify(itemTags))
                 };
                 setSnapshots([...snapshots, snapshot]);
+                logAction('snapshot_created', { name: snapshot.name, id: snapshot.id });
                 showMessage(`Snapshot "${snapshot.name}" created`, 'success');
             };
 
@@ -705,6 +724,7 @@
                 if (snapshot) {
                     if (confirm(`Restore snapshot "${snapshot.name}"? Current work will be added to undo history.`)) {
                         setData(JSON.parse(JSON.stringify(snapshot.data)));
+                        logAction('snapshot_restored', { name: snapshot.name, id: snapshot.id });
                         setNotes(JSON.parse(JSON.stringify(snapshot.notes)));
                         setItemTags(JSON.parse(JSON.stringify(snapshot.tags)));
                         showMessage(`Restored "${snapshot.name}"`, 'success');
@@ -1215,6 +1235,17 @@
                 showMessage('Item deleted', 'success');
             };
 
+            // Audit logging function
+            const logAction = (action, details) => {
+                const entry = {
+                    id: Date.now(),
+                    timestamp: new Date().toISOString(),
+                    action: action,
+                    details: details
+                };
+                setAuditLog(prev => [entry, ...prev].slice(0, 500)); // Keep last 500 entries
+            };
+
             const updateItem = (updates) => {
                 if (!selectedItem) return;
 
@@ -1637,6 +1668,8 @@
                                 onCreateSnapshot={createSnapshot}
                                 onRestoreSnapshot={restoreSnapshot}
                                 onDeleteSnapshot={deleteSnapshot}
+                                auditLog={auditLog}
+                                logAction={logAction}
                             />
                         )}
                         {view === 'preview' && (
@@ -5280,7 +5313,7 @@
             );
         }
 
-        function UtilitiesPanel({ data, getAllFlags, getAllUsers, setSelectedItem, setView, runValidation, searchAndReplace, bulkEdit, notes, setNotes, itemTags, setItemTags, userLibrary, setUserLibrary, snapshots, onCreateSnapshot, onRestoreSnapshot, onDeleteSnapshot }) {
+        function UtilitiesPanel({ data, getAllFlags, getAllUsers, setSelectedItem, setView, runValidation, searchAndReplace, bulkEdit, notes, setNotes, itemTags, setItemTags, userLibrary, setUserLibrary, snapshots, onCreateSnapshot, onRestoreSnapshot, onDeleteSnapshot, auditLog, logAction }) {
             const [activeTab, setActiveTab] = useState('flags');
             const [validationIssues, setValidationIssues] = useState(null);
             const [searchText, setSearchText] = useState('');
@@ -5343,6 +5376,7 @@
                 setValidationIssues(issues);
                 setActiveTab('validation');
             };
+
 
             // **DIFF COMPUTATION FUNCTION**
             const computeDiff = (oldData, newData) => {
@@ -6046,6 +6080,22 @@
                         >
                             📸 Snapshots
                         </button>
+                        <button 
+                            onClick={() => setActiveTab('auditlog')} 
+                            style={{
+                                padding: '8px 16px',
+                                background: activeTab === 'auditlog' ? '#0e639c' : '#2d2d30',
+                                border: 'none',
+                                borderRadius: '4px',
+                                color: 'white',
+                                cursor: 'pointer',
+                                fontSize: '13px',
+                                fontWeight: activeTab === 'auditlog' ? 'bold' : 'normal',
+                                transition: 'all 0.2s'
+                            }}
+                        >
+                            📋 Audit Log
+                        </button>
                     </div>
 
                     {activeTab === 'snapshots' && (
@@ -6567,6 +6617,72 @@
                             setUserLibrary={setUserLibrary}
                             data={data}
                         />
+                    )}
+
+                    {activeTab === 'auditlog' && (
+                        <div>
+                            <h3 style={{marginBottom: '16px', color: '#4ec9b0'}}>📋 Audit Log</h3>
+                            <p style={{color: '#858585', marginBottom: '20px', fontSize: '14px'}}>
+                                Complete history of all changes made to your narrative
+                            </p>
+
+                            {auditLog.length === 0 ? (
+                                <div style={{padding: '40px', textAlign: 'center', color: '#858585'}}>
+                                    No audit log entries yet. Actions will be logged automatically.
+                                </div>
+                            ) : (
+                                <div>
+                                    <div style={{marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                                        <div style={{color: '#9cdcfe'}}>
+                                            {auditLog.length} entries (showing last 100)
+                                        </div>
+                                        <button
+                                            onClick={() => {
+                                                if (confirm('Clear all audit log entries?')) {
+                                                    logAction('audit_log_cleared', { entryCount: auditLog.length });
+                                                }
+                                            }}
+                                            style={{
+                                                padding: '8px 16px',
+                                                background: '#5a1e1e',
+                                                border: 'none',
+                                                borderRadius: '4px',
+                                                color: 'white',
+                                                cursor: 'pointer',
+                                                fontSize: '13px'
+                                            }}
+                                        >
+                                            🗑️ Clear Log
+                                        </button>
+                                    </div>
+
+                                    <div style={{display: 'flex', flexDirection: 'column', gap: '8px'}}>
+                                        {auditLog.slice(0, 100).map(entry => (
+                                            <div key={entry.id} style={{
+                                                background: '#2d2d30',
+                                                padding: '12px',
+                                                borderRadius: '4px',
+                                                borderLeft: '3px solid #0e639c'
+                                            }}>
+                                                <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '4px'}}>
+                                                    <div style={{color: '#dcdcaa', fontWeight: 'bold'}}>
+                                                        {entry.action.replace(/_/g, ' ').toUpperCase()}
+                                                    </div>
+                                                    <div style={{fontSize: '12px', color: '#858585'}}>
+                                                        {new Date(entry.timestamp).toLocaleString()}
+                                                    </div>
+                                                </div>
+                                                {entry.details && (
+                                                    <div style={{fontSize: '13px', color: '#9cdcfe', marginTop: '4px'}}>
+                                                        {typeof entry.details === 'string' ? entry.details : JSON.stringify(entry.details, null, 2)}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     )}
 
                     {activeTab === 'assetbrowser' && (
