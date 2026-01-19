@@ -5310,6 +5310,11 @@
             const [analyticsData, setAnalyticsData] = useState(null);
             const [simulationRunning, setSimulationRunning] = useState(false);
             const [simulationProgress, setSimulationProgress] = useState({ current: 0, total: 0 });
+            const [simConfig, setSimConfig] = useState({
+                maxPaths: 1000,
+                maxDepth: 30,
+                maxDays: 10
+            });
             
             const flags = getAllFlags();
             const users = getAllUsers();
@@ -5352,9 +5357,9 @@
             };
 
             const performSimulationAsync = async () => {
-                const maxPaths = 1000; // Much more conservative
-                const maxDepth = 30; // Shorter paths
-                const maxDays = 10; // Don't go beyond day 10
+                const maxPaths = simConfig.maxPaths;
+                const maxDepth = simConfig.maxDepth;
+                const maxDays = simConfig.maxDays;
                 const CHUNK_SIZE = 10; // Smaller chunks
                 
                 // Helper functions
@@ -5604,6 +5609,7 @@
 
                 // Calculate analytics
                 completedPaths.forEach(path => {
+                    // Count paths that have each flag (already correct - path.flags is a Set)
                     path.flags.forEach(flag => {
                         analytics.flagUsage[flag] = (analytics.flagUsage[flag] || 0) + 1;
                     });
@@ -5615,6 +5621,7 @@
                     analytics.endReasons[endReason] = (analytics.endReasons[endReason] || 0) + 1;
                 });
 
+                // Count choices
                 completedPaths.forEach(path => {
                     path.path.forEach(step => {
                         if (step.choice) {
@@ -5624,16 +5631,28 @@
                     });
                 });
 
+                // Count UNIQUE threads per path (not total thread visits)
                 completedPaths.forEach(path => {
+                    const threadsInPath = new Set();
                     path.path.forEach(step => {
                         const threadKey = `${step.catIdx}-${step.threadIdx}`;
+                        threadsInPath.add(threadKey);
+                    });
+                    // Increment count for each unique thread
+                    threadsInPath.forEach(threadKey => {
                         analytics.threadVisits[threadKey] = (analytics.threadVisits[threadKey] || 0) + 1;
                     });
                 });
 
+                // Count UNIQUE posts per path (not total post visits)
                 completedPaths.forEach(path => {
+                    const postsInPath = new Set();
                     path.path.forEach(step => {
                         const postKey = `${step.catIdx}-${step.threadIdx}-${step.postIdx}`;
+                        postsInPath.add(postKey);
+                    });
+                    // Increment count for each unique post
+                    postsInPath.forEach(postKey => {
                         analytics.postVisits[postKey] = (analytics.postVisits[postKey] || 0) + 1;
                     });
                 });
@@ -7235,6 +7254,149 @@
                                 Simulate all possible player paths through your narrative and analyze the results
                             </p>
 
+                            {/* Configuration Controls */}
+                            <div style={{
+                                background: '#252526',
+                                padding: '20px',
+                                borderRadius: '8px',
+                                marginBottom: '20px'
+                            }}>
+                                <h4 style={{color: '#dcdcaa', marginBottom: '16px'}}>⚙️ Simulation Settings</h4>
+                                <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px'}}>
+                                    <div>
+                                        <label style={{display: 'block', color: '#9cdcfe', marginBottom: '6px', fontSize: '14px'}}>
+                                            Max Paths
+                                        </label>
+                                        <input
+                                            type="number"
+                                            value={simConfig.maxPaths}
+                                            onChange={(e) => setSimConfig({...simConfig, maxPaths: parseInt(e.target.value) || 100})}
+                                            disabled={simulationRunning}
+                                            style={{
+                                                width: '100%',
+                                                padding: '8px',
+                                                background: '#3c3c3c',
+                                                border: '1px solid #3e3e42',
+                                                color: '#d4d4d4',
+                                                borderRadius: '4px'
+                                            }}
+                                        />
+                                        <div style={{fontSize: '11px', color: '#858585', marginTop: '4px'}}>
+                                            Stop after finding this many paths
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label style={{display: 'block', color: '#9cdcfe', marginBottom: '6px', fontSize: '14px'}}>
+                                            Max Depth
+                                        </label>
+                                        <input
+                                            type="number"
+                                            value={simConfig.maxDepth}
+                                            onChange={(e) => setSimConfig({...simConfig, maxDepth: parseInt(e.target.value) || 10})}
+                                            disabled={simulationRunning}
+                                            style={{
+                                                width: '100%',
+                                                padding: '8px',
+                                                background: '#3c3c3c',
+                                                border: '1px solid #3e3e42',
+                                                color: '#d4d4d4',
+                                                borderRadius: '4px'
+                                            }}
+                                        />
+                                        <div style={{fontSize: '11px', color: '#858585', marginTop: '4px'}}>
+                                            Max actions per path
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label style={{display: 'block', color: '#9cdcfe', marginBottom: '6px', fontSize: '14px'}}>
+                                            Max Days
+                                        </label>
+                                        <input
+                                            type="number"
+                                            value={simConfig.maxDays}
+                                            onChange={(e) => setSimConfig({...simConfig, maxDays: parseInt(e.target.value) || 5})}
+                                            disabled={simulationRunning}
+                                            style={{
+                                                width: '100%',
+                                                padding: '8px',
+                                                background: '#3c3c3c',
+                                                border: '1px solid #3e3e42',
+                                                color: '#d4d4d4',
+                                                borderRadius: '4px'
+                                            }}
+                                        />
+                                        <div style={{fontSize: '11px', color: '#858585', marginTop: '4px'}}>
+                                            Don't simulate past this day
+                                        </div>
+                                    </div>
+                                </div>
+                                <div style={{marginTop: '16px', padding: '12px', background: '#2d2d30', borderRadius: '4px'}}>
+                                    <div style={{fontSize: '12px', color: '#dcdcaa', marginBottom: '6px'}}>💡 Recommended Presets:</div>
+                                    <div style={{display: 'flex', gap: '8px', flexWrap: 'wrap'}}>
+                                        <button
+                                            onClick={() => setSimConfig({maxPaths: 100, maxDepth: 15, maxDays: 5})}
+                                            disabled={simulationRunning}
+                                            style={{
+                                                padding: '6px 12px',
+                                                background: '#3e3e42',
+                                                border: 'none',
+                                                borderRadius: '4px',
+                                                color: 'white',
+                                                cursor: simulationRunning ? 'not-allowed' : 'pointer',
+                                                fontSize: '12px'
+                                            }}
+                                        >
+                                            Quick (100/15/5)
+                                        </button>
+                                        <button
+                                            onClick={() => setSimConfig({maxPaths: 500, maxDepth: 25, maxDays: 10})}
+                                            disabled={simulationRunning}
+                                            style={{
+                                                padding: '6px 12px',
+                                                background: '#3e3e42',
+                                                border: 'none',
+                                                borderRadius: '4px',
+                                                color: 'white',
+                                                cursor: simulationRunning ? 'not-allowed' : 'pointer',
+                                                fontSize: '12px'
+                                            }}
+                                        >
+                                            Balanced (500/25/10)
+                                        </button>
+                                        <button
+                                            onClick={() => setSimConfig({maxPaths: 1000, maxDepth: 30, maxDays: 10})}
+                                            disabled={simulationRunning}
+                                            style={{
+                                                padding: '6px 12px',
+                                                background: '#3e3e42',
+                                                border: 'none',
+                                                borderRadius: '4px',
+                                                color: 'white',
+                                                cursor: simulationRunning ? 'not-allowed' : 'pointer',
+                                                fontSize: '12px'
+                                            }}
+                                        >
+                                            Default (1000/30/10)
+                                        </button>
+                                        <button
+                                            onClick={() => setSimConfig({maxPaths: 2000, maxDepth: 50, maxDays: 20})}
+                                            disabled={simulationRunning}
+                                            style={{
+                                                padding: '6px 12px',
+                                                background: '#3e3e42',
+                                                border: 'none',
+                                                borderRadius: '4px',
+                                                color: 'white',
+                                                cursor: simulationRunning ? 'not-allowed' : 'pointer',
+                                                fontSize: '12px'
+                                            }}
+                                        >
+                                            Thorough (2000/50/20)
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
                             {!analyticsData ? (
                                 <div>
                                     <div style={{
@@ -7397,38 +7559,41 @@
                                                 {Object.entries(analyticsData.flagUsage)
                                                     .sort((a, b) => b[1] - a[1])
                                                     .slice(0, 10)
-                                                    .map(([flag, count]) => (
-                                                        <div key={flag} style={{
-                                                            background: '#2d2d30',
-                                                            padding: '12px',
-                                                            borderRadius: '4px',
-                                                            display: 'flex',
-                                                            justifyContent: 'space-between',
-                                                            alignItems: 'center'
-                                                        }}>
-                                                            <div style={{color: '#9cdcfe', fontFamily: 'monospace'}}>
-                                                                {flag}
-                                                            </div>
-                                                            <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
-                                                                <div style={{
-                                                                    width: '100px',
-                                                                    height: '8px',
-                                                                    background: '#3e3e42',
-                                                                    borderRadius: '4px',
-                                                                    overflow: 'hidden'
-                                                                }}>
+                                                    .map(([flag, count]) => {
+                                                        const percentage = Math.min(100, (count / analyticsData.totalPaths) * 100);
+                                                        return (
+                                                            <div key={flag} style={{
+                                                                background: '#2d2d30',
+                                                                padding: '12px',
+                                                                borderRadius: '4px',
+                                                                display: 'flex',
+                                                                justifyContent: 'space-between',
+                                                                alignItems: 'center'
+                                                            }}>
+                                                                <div style={{color: '#9cdcfe', fontFamily: 'monospace'}}>
+                                                                    {flag}
+                                                                </div>
+                                                                <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
                                                                     <div style={{
-                                                                        width: `${(count / analyticsData.totalPaths) * 100}%`,
-                                                                        height: '100%',
-                                                                        background: '#4ec9b0'
-                                                                    }} />
-                                                                </div>
-                                                                <div style={{color: '#4ec9b0', fontWeight: 'bold', minWidth: '60px', textAlign: 'right'}}>
-                                                                    {count} ({((count / analyticsData.totalPaths) * 100).toFixed(1)}%)
+                                                                        width: '100px',
+                                                                        height: '8px',
+                                                                        background: '#3e3e42',
+                                                                        borderRadius: '4px',
+                                                                        overflow: 'hidden'
+                                                                    }}>
+                                                                        <div style={{
+                                                                            width: `${percentage}%`,
+                                                                            height: '100%',
+                                                                            background: '#4ec9b0'
+                                                                        }} />
+                                                                    </div>
+                                                                    <div style={{color: '#4ec9b0', fontWeight: 'bold', minWidth: '80px', textAlign: 'right'}}>
+                                                                        {count} paths ({percentage.toFixed(0)}%)
+                                                                    </div>
                                                                 </div>
                                                             </div>
-                                                        </div>
-                                                    ))}
+                                                        );
+                                                    })}
                                             </div>
                                         )}
                                     </div>
@@ -7459,7 +7624,7 @@
                                                                 {data[catIdx].title}
                                                             </div>
                                                             <div style={{color: '#4ec9b0'}}>
-                                                                {count} visits ({((count / analyticsData.totalPaths) * 100).toFixed(1)}%)
+                                                                {count} paths ({Math.min(100, (count / analyticsData.totalPaths) * 100).toFixed(0)}%)
                                                             </div>
                                                         </div>
                                                     );
@@ -7483,10 +7648,11 @@
                                                         {reason === 'completed' && '✅ Completed'}
                                                         {reason === 'no_actions' && '🔒 No Available Actions'}
                                                         {reason === 'depth_limit' && '⚠️ Depth Limit Reached'}
-                                                        {reason === 'queue_limit' && '⏸️ Queue Limit'}
+                                                        {reason === 'day_limit' && '📅 Day Limit Reached'}
+                                                        {reason === 'path_limit' && '⏸️ Path Limit Reached'}
                                                     </div>
                                                     <div style={{color: '#4ec9b0', fontWeight: 'bold'}}>
-                                                        {count} ({((count / analyticsData.totalPaths) * 100).toFixed(1)}%)
+                                                        {count} ({Math.min(100, (count / analyticsData.totalPaths) * 100).toFixed(0)}%)
                                                     </div>
                                                 </div>
                                             ))}
