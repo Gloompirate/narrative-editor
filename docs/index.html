@@ -5316,6 +5316,13 @@
                 maxDays: 10
             });
             
+            // Diff viewer state
+            const [showDiffViewer, setShowDiffViewer] = useState(false);
+            const [diffMode, setDiffMode] = useState('current'); // 'current' or 'snapshots'
+            const [diffSnapshot1, setDiffSnapshot1] = useState(null);
+            const [diffSnapshot2, setDiffSnapshot2] = useState(null);
+            const [diffResult, setDiffResult] = useState(null);
+            
             const flags = getAllFlags();
             const users = getAllUsers();
 
@@ -5335,6 +5342,194 @@
                 const issues = runValidation();
                 setValidationIssues(issues);
                 setActiveTab('validation');
+            };
+
+            // **DIFF COMPUTATION FUNCTION**
+            const computeDiff = (oldData, newData) => {
+                const changes = {
+                    added: { categories: [], threads: [], posts: [] },
+                    removed: { categories: [], threads: [], posts: [] },
+                    modified: { categories: [], threads: [], posts: [] },
+                    unchanged: { categories: 0, threads: 0, posts: 0 }
+                };
+
+                // Create maps for quick lookup
+                const oldCatMap = new Map(oldData.map((cat, idx) => [cat.id, { ...cat, idx }]));
+                const newCatMap = new Map(newData.map((cat, idx) => [cat.id, { ...cat, idx }]));
+
+                // Check for removed categories
+                oldData.forEach((oldCat, oldIdx) => {
+                    if (!newCatMap.has(oldCat.id)) {
+                        changes.removed.categories.push({
+                            title: oldCat.title,
+                            icon: oldCat.icon,
+                            threadCount: oldCat.threads.length
+                        });
+                    }
+                });
+
+                // Check for added and modified categories
+                newData.forEach((newCat, newIdx) => {
+                    const oldCat = oldCatMap.get(newCat.id);
+                    
+                    if (!oldCat) {
+                        // Added category
+                        changes.added.categories.push({
+                            title: newCat.title,
+                            icon: newCat.icon,
+                            threadCount: newCat.threads.length
+                        });
+                        return;
+                    }
+
+                    // Check if category modified
+                    const catModified = oldCat.title !== newCat.title || oldCat.icon !== newCat.icon;
+                    if (catModified) {
+                        changes.modified.categories.push({
+                            oldTitle: oldCat.title,
+                            newTitle: newCat.title,
+                            oldIcon: oldCat.icon,
+                            newIcon: newCat.icon,
+                            titleChanged: oldCat.title !== newCat.title,
+                            iconChanged: oldCat.icon !== newCat.icon
+                        });
+                    } else {
+                        changes.unchanged.categories++;
+                    }
+
+                    // Compare threads within category
+                    const oldThreadMap = new Map(oldCat.threads.map((t, idx) => [t.id, { ...t, idx, catTitle: oldCat.title }]));
+                    const newThreadMap = new Map(newCat.threads.map((t, idx) => [t.id, { ...t, idx, catTitle: newCat.title }]));
+
+                    // Removed threads
+                    oldCat.threads.forEach(oldThread => {
+                        if (!newThreadMap.has(oldThread.id)) {
+                            changes.removed.threads.push({
+                                category: oldCat.title,
+                                title: oldThread.title,
+                                postCount: oldThread.posts.length
+                            });
+                        }
+                    });
+
+                    // Added and modified threads
+                    newCat.threads.forEach(newThread => {
+                        const oldThread = oldThreadMap.get(newThread.id);
+                        
+                        if (!oldThread) {
+                            changes.added.threads.push({
+                                category: newCat.title,
+                                title: newThread.title,
+                                postCount: newThread.posts.length
+                            });
+                            return;
+                        }
+
+                        // Check if thread modified
+                        const threadModified = 
+                            oldThread.title !== newThread.title ||
+                            oldThread.subtitle !== newThread.subtitle ||
+                            JSON.stringify(oldThread.conditions) !== JSON.stringify(newThread.conditions);
+                        
+                        if (threadModified) {
+                            changes.modified.threads.push({
+                                category: newCat.title,
+                                oldTitle: oldThread.title,
+                                newTitle: newThread.title,
+                                titleChanged: oldThread.title !== newThread.title,
+                                subtitleChanged: oldThread.subtitle !== newThread.subtitle,
+                                conditionsChanged: JSON.stringify(oldThread.conditions) !== JSON.stringify(newThread.conditions)
+                            });
+                        } else {
+                            changes.unchanged.threads++;
+                        }
+
+                        // Compare posts within thread
+                        const oldPostMap = new Map(oldThread.posts.map((p, idx) => [p.id, { ...p, idx }]));
+                        const newPostMap = new Map(newThread.posts.map((p, idx) => [p.id, { ...p, idx }]));
+
+                        // Removed posts
+                        oldThread.posts.forEach(oldPost => {
+                            if (!newPostMap.has(oldPost.id)) {
+                                changes.removed.posts.push({
+                                    category: oldCat.title,
+                                    thread: oldThread.title,
+                                    userName: oldPost.user_name,
+                                    bodyPreview: oldPost.body.substring(0, 50) + '...'
+                                });
+                            }
+                        });
+
+                        // Added and modified posts
+                        newThread.posts.forEach(newPost => {
+                            const oldPost = oldPostMap.get(newPost.id);
+                            
+                            if (!oldPost) {
+                                changes.added.posts.push({
+                                    category: newCat.title,
+                                    thread: newThread.title,
+                                    userName: newPost.user_name,
+                                    bodyPreview: newPost.body.substring(0, 50) + '...'
+                                });
+                                return;
+                            }
+
+                            // Check if post modified
+                            const postModified =
+                                oldPost.user_name !== newPost.user_name ||
+                                oldPost.body !== newPost.body ||
+                                JSON.stringify(oldPost.options) !== JSON.stringify(newPost.options) ||
+                                JSON.stringify(oldPost.conditions) !== JSON.stringify(newPost.conditions);
+                            
+                            if (postModified) {
+                                changes.modified.posts.push({
+                                    category: newCat.title,
+                                    thread: newThread.title,
+                                    userName: newPost.user_name,
+                                    userChanged: oldPost.user_name !== newPost.user_name,
+                                    bodyChanged: oldPost.body !== newPost.body,
+                                    optionsChanged: JSON.stringify(oldPost.options) !== JSON.stringify(newPost.options),
+                                    conditionsChanged: JSON.stringify(oldPost.conditions) !== JSON.stringify(newPost.conditions),
+                                    oldBodyPreview: oldPost.body.substring(0, 50) + '...',
+                                    newBodyPreview: newPost.body.substring(0, 50) + '...'
+                                });
+                            } else {
+                                changes.unchanged.posts++;
+                            }
+                        });
+                    });
+                });
+
+                return changes;
+            };
+
+            const handleCompareDiff = () => {
+                if (diffMode === 'current') {
+                    if (!diffSnapshot1) {
+                        alert('Please select a snapshot to compare with current data');
+                        return;
+                    }
+                    const snapshot = snapshots.find(s => s.id == diffSnapshot1); // Use == for type coercion
+                    if (!snapshot) {
+                        alert('Selected snapshot not found');
+                        return;
+                    }
+                    const diff = computeDiff(snapshot.data, data);
+                    setDiffResult({ diff, mode: 'current', snapshotName: snapshot.name });
+                } else {
+                    if (!diffSnapshot1 || !diffSnapshot2) {
+                        alert('Please select two snapshots to compare');
+                        return;
+                    }
+                    const snap1 = snapshots.find(s => s.id == diffSnapshot1); // Use == for type coercion
+                    const snap2 = snapshots.find(s => s.id == diffSnapshot2); // Use == for type coercion
+                    if (!snap1 || !snap2) {
+                        alert('One or both selected snapshots not found');
+                        return;
+                    }
+                    const diff = computeDiff(snap1.data, snap2.data);
+                    setDiffResult({ diff, mode: 'snapshots', snapshot1Name: snap1.name, snapshot2Name: snap2.name });
+                }
             };
 
             // **AUTOMATED SIMULATION ENGINE**
@@ -5860,8 +6055,8 @@
                                 Save named versions of your narrative. Perfect for milestones, experiments, or backups.
                             </p>
 
-                            {/* Create snapshot */}
-                            <div style={{marginBottom: '20px'}}>
+                            {/* Action buttons */}
+                            <div style={{marginBottom: '20px', display: 'flex', gap: '12px'}}>
                                 <button
                                     onClick={() => {
                                         const name = prompt('Enter snapshot name:');
@@ -5881,7 +6076,404 @@
                                 >
                                     📸 Create Snapshot
                                 </button>
+                                <button
+                                    onClick={() => setShowDiffViewer(!showDiffViewer)}
+                                    disabled={snapshots.length === 0}
+                                    style={{
+                                        padding: '10px 20px',
+                                        background: snapshots.length > 0 ? '#3e3e42' : '#2d2d30',
+                                        border: 'none',
+                                        borderRadius: '4px',
+                                        color: snapshots.length > 0 ? 'white' : '#858585',
+                                        cursor: snapshots.length > 0 ? 'pointer' : 'not-allowed',
+                                        fontSize: '14px'
+                                    }}
+                                >
+                                    🔍 Compare Versions
+                                </button>
                             </div>
+
+                            {/* Diff Viewer */}
+                            {showDiffViewer && snapshots.length > 0 && (
+                                <div style={{
+                                    background: '#252526',
+                                    padding: '20px',
+                                    borderRadius: '8px',
+                                    marginBottom: '20px',
+                                    border: '2px solid #0e639c'
+                                }}>
+                                    <h4 style={{color: '#4ec9b0', marginBottom: '16px'}}>Compare Versions</h4>
+                                    
+                                    {/* Mode selector */}
+                                    <div style={{marginBottom: '16px'}}>
+                                        <div style={{display: 'flex', gap: '8px', marginBottom: '12px'}}>
+                                            <button
+                                                onClick={() => {
+                                                    setDiffMode('current');
+                                                    setDiffResult(null);
+                                                }}
+                                                style={{
+                                                    padding: '8px 16px',
+                                                    background: diffMode === 'current' ? '#0e639c' : '#3e3e42',
+                                                    border: 'none',
+                                                    borderRadius: '4px',
+                                                    color: 'white',
+                                                    cursor: 'pointer'
+                                                }}
+                                            >
+                                                Current vs Snapshot
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    setDiffMode('snapshots');
+                                                    setDiffResult(null);
+                                                }}
+                                                style={{
+                                                    padding: '8px 16px',
+                                                    background: diffMode === 'snapshots' ? '#0e639c' : '#3e3e42',
+                                                    border: 'none',
+                                                    borderRadius: '4px',
+                                                    color: 'white',
+                                                    cursor: 'pointer'
+                                                }}
+                                            >
+                                                Snapshot vs Snapshot
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {/* Comparison selectors */}
+                                    {diffMode === 'current' ? (
+                                        <div style={{marginBottom: '16px'}}>
+                                            <label style={{display: 'block', color: '#9cdcfe', marginBottom: '6px'}}>
+                                                Compare current data with:
+                                            </label>
+                                            <select
+                                                value={diffSnapshot1 || ''}
+                                                onChange={(e) => {
+                                                    setDiffSnapshot1(e.target.value);
+                                                    setDiffResult(null);
+                                                }}
+                                                style={{
+                                                    width: '100%',
+                                                    padding: '8px',
+                                                    background: '#3c3c3c',
+                                                    border: '1px solid #3e3e42',
+                                                    color: '#d4d4d4',
+                                                    borderRadius: '4px'
+                                                }}
+                                            >
+                                                <option value="">Select a snapshot...</option>
+                                                {snapshots.map(snap => (
+                                                    <option key={snap.id} value={snap.id}>
+                                                        {snap.name} - {new Date(snap.timestamp).toLocaleString()}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    ) : (
+                                        <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px'}}>
+                                            <div>
+                                                <label style={{display: 'block', color: '#9cdcfe', marginBottom: '6px'}}>
+                                                    From (older):
+                                                </label>
+                                                <select
+                                                    value={diffSnapshot1 || ''}
+                                                    onChange={(e) => {
+                                                        setDiffSnapshot1(e.target.value);
+                                                        setDiffResult(null);
+                                                    }}
+                                                    style={{
+                                                        width: '100%',
+                                                        padding: '8px',
+                                                        background: '#3c3c3c',
+                                                        border: '1px solid #3e3e42',
+                                                        color: '#d4d4d4',
+                                                        borderRadius: '4px'
+                                                    }}
+                                                >
+                                                    <option value="">Select snapshot...</option>
+                                                    {snapshots.map(snap => (
+                                                        <option key={snap.id} value={snap.id}>
+                                                            {snap.name}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label style={{display: 'block', color: '#9cdcfe', marginBottom: '6px'}}>
+                                                    To (newer):
+                                                </label>
+                                                <select
+                                                    value={diffSnapshot2 || ''}
+                                                    onChange={(e) => {
+                                                        setDiffSnapshot2(e.target.value);
+                                                        setDiffResult(null);
+                                                    }}
+                                                    style={{
+                                                        width: '100%',
+                                                        padding: '8px',
+                                                        background: '#3c3c3c',
+                                                        border: '1px solid #3e3e42',
+                                                        color: '#d4d4d4',
+                                                        borderRadius: '4px'
+                                                    }}
+                                                >
+                                                    <option value="">Select snapshot...</option>
+                                                    {snapshots.map(snap => (
+                                                        <option key={snap.id} value={snap.id}>
+                                                            {snap.name}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <button
+                                        onClick={handleCompareDiff}
+                                        disabled={diffMode === 'current' ? !diffSnapshot1 : (!diffSnapshot1 || !diffSnapshot2)}
+                                        style={{
+                                            padding: '10px 20px',
+                                            background: (diffMode === 'current' ? diffSnapshot1 : (diffSnapshot1 && diffSnapshot2)) ? '#0e639c' : '#3e3e42',
+                                            border: 'none',
+                                            borderRadius: '4px',
+                                            color: 'white',
+                                            cursor: (diffMode === 'current' ? diffSnapshot1 : (diffSnapshot1 && diffSnapshot2)) ? 'pointer' : 'not-allowed',
+                                            marginBottom: '16px'
+                                        }}
+                                    >
+                                        🔍 Compare
+                                    </button>
+
+                                    {/* Diff Results */}
+                                    {diffResult && (
+                                        <div style={{
+                                            background: '#2d2d30',
+                                            padding: '16px',
+                                            borderRadius: '6px',
+                                            maxHeight: '600px',
+                                            overflowY: 'auto'
+                                        }}>
+                                            <h5 style={{color: '#dcdcaa', marginBottom: '12px'}}>
+                                                {diffResult.mode === 'current' ? 
+                                                    `Current vs ${diffResult.snapshotName}` :
+                                                    `${diffResult.snapshot1Name} → ${diffResult.snapshot2Name}`
+                                                }
+                                            </h5>
+
+                                            {/* Summary */}
+                                            <div style={{
+                                                display: 'grid',
+                                                gridTemplateColumns: 'repeat(4, 1fr)',
+                                                gap: '8px',
+                                                marginBottom: '16px'
+                                            }}>
+                                                <div style={{background: '#1e4d1e', padding: '8px', borderRadius: '4px', textAlign: 'center'}}>
+                                                    <div style={{fontSize: '20px', color: '#4ec9b0'}}>
+                                                        {diffResult.diff.added.categories.length + 
+                                                         diffResult.diff.added.threads.length + 
+                                                         diffResult.diff.added.posts.length}
+                                                    </div>
+                                                    <div style={{fontSize: '11px', color: '#858585'}}>Added</div>
+                                                </div>
+                                                <div style={{background: '#4d1e1e', padding: '8px', borderRadius: '4px', textAlign: 'center'}}>
+                                                    <div style={{fontSize: '20px', color: '#f48771'}}>
+                                                        {diffResult.diff.removed.categories.length + 
+                                                         diffResult.diff.removed.threads.length + 
+                                                         diffResult.diff.removed.posts.length}
+                                                    </div>
+                                                    <div style={{fontSize: '11px', color: '#858585'}}>Removed</div>
+                                                </div>
+                                                <div style={{background: '#4d4d1e', padding: '8px', borderRadius: '4px', textAlign: 'center'}}>
+                                                    <div style={{fontSize: '20px', color: '#dcdcaa'}}>
+                                                        {diffResult.diff.modified.categories.length + 
+                                                         diffResult.diff.modified.threads.length + 
+                                                         diffResult.diff.modified.posts.length}
+                                                    </div>
+                                                    <div style={{fontSize: '11px', color: '#858585'}}>Modified</div>
+                                                </div>
+                                                <div style={{background: '#2d3d3d', padding: '8px', borderRadius: '4px', textAlign: 'center'}}>
+                                                    <div style={{fontSize: '20px', color: '#9cdcfe'}}>
+                                                        {diffResult.diff.unchanged.categories + 
+                                                         diffResult.diff.unchanged.threads + 
+                                                         diffResult.diff.unchanged.posts}
+                                                    </div>
+                                                    <div style={{fontSize: '11px', color: '#858585'}}>Unchanged</div>
+                                                </div>
+                                            </div>
+
+                                            {/* Detailed changes */}
+                                            {(diffResult.diff.added.categories.length > 0 || 
+                                              diffResult.diff.added.threads.length > 0 || 
+                                              diffResult.diff.added.posts.length > 0) && (
+                                                <div style={{marginBottom: '16px'}}>
+                                                    <h6 style={{color: '#4ec9b0', marginBottom: '8px'}}>✅ Added</h6>
+                                                    {diffResult.diff.added.categories.length > 0 && (
+                                                        <div style={{marginBottom: '8px'}}>
+                                                            <div style={{color: '#858585', fontSize: '12px', marginBottom: '4px'}}>
+                                                                Categories ({diffResult.diff.added.categories.length}):
+                                                            </div>
+                                                            {diffResult.diff.added.categories.map((cat, idx) => (
+                                                                <div key={idx} style={{fontSize: '13px', color: '#4ec9b0', marginLeft: '12px'}}>
+                                                                    {cat.icon} {cat.title} ({cat.threadCount} threads)
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                    {diffResult.diff.added.threads.length > 0 && (
+                                                        <div style={{marginBottom: '8px'}}>
+                                                            <div style={{color: '#858585', fontSize: '12px', marginBottom: '4px'}}>
+                                                                Threads ({diffResult.diff.added.threads.length}):
+                                                            </div>
+                                                            {diffResult.diff.added.threads.slice(0, 5).map((thread, idx) => (
+                                                                <div key={idx} style={{fontSize: '13px', color: '#4ec9b0', marginLeft: '12px'}}>
+                                                                    {thread.category} → {thread.title} ({thread.postCount} posts)
+                                                                </div>
+                                                            ))}
+                                                            {diffResult.diff.added.threads.length > 5 && (
+                                                                <div style={{fontSize: '12px', color: '#858585', marginLeft: '12px'}}>
+                                                                    ...and {diffResult.diff.added.threads.length - 5} more
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                    {diffResult.diff.added.posts.length > 0 && (
+                                                        <div>
+                                                            <div style={{color: '#858585', fontSize: '12px', marginBottom: '4px'}}>
+                                                                Posts ({diffResult.diff.added.posts.length}):
+                                                            </div>
+                                                            {diffResult.diff.added.posts.slice(0, 5).map((post, idx) => (
+                                                                <div key={idx} style={{fontSize: '13px', color: '#4ec9b0', marginLeft: '12px'}}>
+                                                                    {post.category} → {post.thread} → {post.userName}
+                                                                </div>
+                                                            ))}
+                                                            {diffResult.diff.added.posts.length > 5 && (
+                                                                <div style={{fontSize: '12px', color: '#858585', marginLeft: '12px'}}>
+                                                                    ...and {diffResult.diff.added.posts.length - 5} more
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+
+                                            {(diffResult.diff.removed.categories.length > 0 || 
+                                              diffResult.diff.removed.threads.length > 0 || 
+                                              diffResult.diff.removed.posts.length > 0) && (
+                                                <div style={{marginBottom: '16px'}}>
+                                                    <h6 style={{color: '#f48771', marginBottom: '8px'}}>❌ Removed</h6>
+                                                    {diffResult.diff.removed.categories.length > 0 && (
+                                                        <div style={{marginBottom: '8px'}}>
+                                                            <div style={{color: '#858585', fontSize: '12px', marginBottom: '4px'}}>
+                                                                Categories ({diffResult.diff.removed.categories.length}):
+                                                            </div>
+                                                            {diffResult.diff.removed.categories.map((cat, idx) => (
+                                                                <div key={idx} style={{fontSize: '13px', color: '#f48771', marginLeft: '12px'}}>
+                                                                    {cat.icon} {cat.title} ({cat.threadCount} threads)
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                    {diffResult.diff.removed.threads.length > 0 && (
+                                                        <div style={{marginBottom: '8px'}}>
+                                                            <div style={{color: '#858585', fontSize: '12px', marginBottom: '4px'}}>
+                                                                Threads ({diffResult.diff.removed.threads.length}):
+                                                            </div>
+                                                            {diffResult.diff.removed.threads.slice(0, 5).map((thread, idx) => (
+                                                                <div key={idx} style={{fontSize: '13px', color: '#f48771', marginLeft: '12px'}}>
+                                                                    {thread.category} → {thread.title}
+                                                                </div>
+                                                            ))}
+                                                            {diffResult.diff.removed.threads.length > 5 && (
+                                                                <div style={{fontSize: '12px', color: '#858585', marginLeft: '12px'}}>
+                                                                    ...and {diffResult.diff.removed.threads.length - 5} more
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                    {diffResult.diff.removed.posts.length > 0 && (
+                                                        <div>
+                                                            <div style={{color: '#858585', fontSize: '12px', marginBottom: '4px'}}>
+                                                                Posts ({diffResult.diff.removed.posts.length}):
+                                                            </div>
+                                                            {diffResult.diff.removed.posts.slice(0, 5).map((post, idx) => (
+                                                                <div key={idx} style={{fontSize: '13px', color: '#f48771', marginLeft: '12px'}}>
+                                                                    {post.category} → {post.thread} → {post.userName}
+                                                                </div>
+                                                            ))}
+                                                            {diffResult.diff.removed.posts.length > 5 && (
+                                                                <div style={{fontSize: '12px', color: '#858585', marginLeft: '12px'}}>
+                                                                    ...and {diffResult.diff.removed.posts.length - 5} more
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+
+                                            {(diffResult.diff.modified.categories.length > 0 || 
+                                              diffResult.diff.modified.threads.length > 0 || 
+                                              diffResult.diff.modified.posts.length > 0) && (
+                                                <div>
+                                                    <h6 style={{color: '#dcdcaa', marginBottom: '8px'}}>✏️ Modified</h6>
+                                                    {diffResult.diff.modified.categories.length > 0 && (
+                                                        <div style={{marginBottom: '8px'}}>
+                                                            <div style={{color: '#858585', fontSize: '12px', marginBottom: '4px'}}>
+                                                                Categories ({diffResult.diff.modified.categories.length}):
+                                                            </div>
+                                                            {diffResult.diff.modified.categories.map((cat, idx) => (
+                                                                <div key={idx} style={{fontSize: '13px', color: '#dcdcaa', marginLeft: '12px'}}>
+                                                                    {cat.titleChanged && `Title: "${cat.oldTitle}" → "${cat.newTitle}"`}
+                                                                    {cat.iconChanged && ` Icon: ${cat.oldIcon} → ${cat.newIcon}`}
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                    {diffResult.diff.modified.threads.length > 0 && (
+                                                        <div style={{marginBottom: '8px'}}>
+                                                            <div style={{color: '#858585', fontSize: '12px', marginBottom: '4px'}}>
+                                                                Threads ({diffResult.diff.modified.threads.length}):
+                                                            </div>
+                                                            {diffResult.diff.modified.threads.slice(0, 5).map((thread, idx) => (
+                                                                <div key={idx} style={{fontSize: '13px', color: '#dcdcaa', marginLeft: '12px'}}>
+                                                                    {thread.category} → {thread.oldTitle}
+                                                                    {thread.titleChanged && ` (title changed)`}
+                                                                    {thread.conditionsChanged && ` (conditions changed)`}
+                                                                </div>
+                                                            ))}
+                                                            {diffResult.diff.modified.threads.length > 5 && (
+                                                                <div style={{fontSize: '12px', color: '#858585', marginLeft: '12px'}}>
+                                                                    ...and {diffResult.diff.modified.threads.length - 5} more
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                    {diffResult.diff.modified.posts.length > 0 && (
+                                                        <div>
+                                                            <div style={{color: '#858585', fontSize: '12px', marginBottom: '4px'}}>
+                                                                Posts ({diffResult.diff.modified.posts.length}):
+                                                            </div>
+                                                            {diffResult.diff.modified.posts.slice(0, 5).map((post, idx) => (
+                                                                <div key={idx} style={{fontSize: '13px', color: '#dcdcaa', marginLeft: '12px'}}>
+                                                                    {post.thread} → {post.userName}
+                                                                    {post.bodyChanged && ` (body changed)`}
+                                                                    {post.optionsChanged && ` (options changed)`}
+                                                                </div>
+                                                            ))}
+                                                            {diffResult.diff.modified.posts.length > 5 && (
+                                                                <div style={{fontSize: '12px', color: '#858585', marginLeft: '12px'}}>
+                                                                    ...and {diffResult.diff.modified.posts.length - 5} more
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
 
                             {/* Snapshot list */}
                             {snapshots.length === 0 ? (
